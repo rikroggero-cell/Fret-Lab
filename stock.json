@@ -1,0 +1,940 @@
+{
+  "format": "fretlab-stock/1",
+  "name": "Fretboard Lab - dati di serie",
+  "scales": [
+    {
+      "group": "Modi della maggiore",
+      "name": "Ionico (Maggiore Naturale)",
+      "degrees": "F 2 3 4 5 6 7"
+    },
+    {
+      "group": "Modi della maggiore",
+      "name": "Dorico",
+      "degrees": "F 2 b3 4 5 6 b7"
+    },
+    {
+      "group": "Modi della maggiore",
+      "name": "Frigio",
+      "degrees": "F b2 b3 4 5 b6 b7"
+    },
+    {
+      "group": "Modi della maggiore",
+      "name": "Lidio",
+      "degrees": "F 2 3 #4 5 6 7"
+    },
+    {
+      "group": "Modi della maggiore",
+      "name": "Misolidio",
+      "degrees": "F 2 3 4 5 6 b7"
+    },
+    {
+      "group": "Modi della maggiore",
+      "name": "Eolio (Minore naturale)",
+      "degrees": "F 2 b3 4 5 b6 b7"
+    },
+    {
+      "group": "Modi della maggiore",
+      "name": "Locrio",
+      "degrees": "F b2 b3 4 b5 b6 b7"
+    },
+    {
+      "group": "Minore armonica e modi",
+      "name": "Ipoionico b6 (Minore armonica)",
+      "degrees": "F 2 b3 4 5 b6 7"
+    },
+    {
+      "group": "Minore armonica e modi",
+      "name": "Locrio ♮6",
+      "degrees": "F b2 b3 4 b5 6 b7"
+    },
+    {
+      "group": "Minore armonica e modi",
+      "name": "Ionio #5",
+      "degrees": "F 2 3 4 #5 6 7"
+    },
+    {
+      "group": "Minore armonica e modi",
+      "name": "Dorico #4",
+      "degrees": "F 2 b3 #4 5 6 b7"
+    },
+    {
+      "group": "Minore armonica e modi",
+      "name": "Frigio dominante",
+      "degrees": "F b2 3 4 5 b6 b7"
+    },
+    {
+      "group": "Minore armonica e modi",
+      "name": "Lidio #2",
+      "degrees": "F #2 3 #4 5 6 7"
+    },
+    {
+      "group": "Minore armonica e modi",
+      "name": "Superlocrio bb7",
+      "degrees": "F b2 b3 b4 b5 b6 bb7"
+    },
+    {
+      "group": "Minore melodica e modi",
+      "name": "Ipoionico (Minore melodica)",
+      "degrees": "F 2 b3 4 5 6 7"
+    },
+    {
+      "group": "Minore melodica e modi",
+      "name": "Dorico b2",
+      "degrees": "F b2 b3 4 5 6 b7"
+    },
+    {
+      "group": "Minore melodica e modi",
+      "name": "Lidio aumentato",
+      "degrees": "F 2 3 #4 #5 6 7"
+    },
+    {
+      "group": "Minore melodica e modi",
+      "name": "Lidio dominante",
+      "degrees": "F 2 3 #4 5 6 b7"
+    },
+    {
+      "group": "Minore melodica e modi",
+      "name": "Misolidio b6",
+      "degrees": "F 2 3 4 5 b6 b7"
+    },
+    {
+      "group": "Minore melodica e modi",
+      "name": "Locrio ♮2",
+      "degrees": "F 2 b3 4 b5 b6 b7"
+    },
+    {
+      "group": "Minore melodica e modi",
+      "name": "Alterata (Superlocrio)",
+      "degrees": "F b2 b3 b4 b5 b6 b7"
+    },
+    {
+      "group": "Altre eptatoniche",
+      "name": "Maggiore armonica",
+      "degrees": "F 2 3 4 5 b6 7"
+    },
+    {
+      "group": "Altre eptatoniche",
+      "name": "Doppia armonica (Bizantina)",
+      "degrees": "F b2 3 4 5 b6 7"
+    },
+    {
+      "group": "Altre eptatoniche",
+      "name": "Ungherese minore",
+      "degrees": "F 2 b3 #4 5 b6 7"
+    },
+    {
+      "group": "Altre eptatoniche",
+      "name": "Napoletana minore",
+      "degrees": "F b2 b3 4 5 b6 7"
+    },
+    {
+      "group": "Altre eptatoniche",
+      "name": "Napoletana maggiore",
+      "degrees": "F b2 b3 4 5 6 7"
+    },
+    {
+      "group": "Altre eptatoniche",
+      "name": "Enigmatica",
+      "degrees": "F b2 3 #4 #5 #6 7"
+    },
+    {
+      "group": "Simmetriche",
+      "name": "Esatonale (toni interi)",
+      "degrees": "F 2 3 #4 #5 b7"
+    },
+    {
+      "group": "Simmetriche",
+      "name": "Diminuita tono-semitono",
+      "degrees": "F 2 b3 4 b5 b6 6 7"
+    },
+    {
+      "group": "Simmetriche",
+      "name": "Diminuita semitono-tono",
+      "degrees": "F b2 b3 3 #4 5 6 b7"
+    },
+    {
+      "group": "Simmetriche",
+      "name": "Aumentata",
+      "degrees": "F #2 3 5 #5 7"
+    },
+    {
+      "group": "Pentatoniche e blues",
+      "name": "Pentatonica maggiore",
+      "degrees": "F 2 3 5 6",
+      "extras": true
+    },
+    {
+      "group": "Pentatoniche e blues",
+      "name": "Pentatonica minore",
+      "degrees": "F b3 4 5 b7",
+      "extras": true
+    },
+    {
+      "group": "Pentatoniche e blues",
+      "name": "Blues minore",
+      "degrees": "F b3 4 b5 5 b7",
+      "extras": true
+    },
+    {
+      "group": "Pentatoniche e blues",
+      "name": "Blues maggiore",
+      "degrees": "F 2 b3 3 5 6",
+      "extras": true
+    },
+    {
+      "group": "Pentatoniche e blues",
+      "name": "Hirajoshi",
+      "degrees": "F 2 b3 5 b6",
+      "extras": true
+    },
+    {
+      "group": "Pentatoniche e blues",
+      "name": "In-Sen",
+      "degrees": "F b2 4 5 b7",
+      "extras": true
+    },
+    {
+      "group": "Pentatoniche e blues",
+      "name": "Iwato",
+      "degrees": "F b2 4 b5 b7",
+      "extras": true
+    },
+    {
+      "group": "Pentatoniche e blues",
+      "name": "Kumoi",
+      "degrees": "F 2 b3 5 6",
+      "extras": true
+    },
+    {
+      "group": "Pentatoniche e blues",
+      "name": "Egiziana (sus)",
+      "degrees": "F 2 4 5 b7",
+      "extras": true
+    },
+    {
+      "group": "Bebop",
+      "name": "Bebop dominante",
+      "degrees": "F 2 3 4 5 6 b7 7"
+    },
+    {
+      "group": "Bebop",
+      "name": "Bebop maggiore",
+      "degrees": "F 2 3 4 5 b6 6 7"
+    },
+    {
+      "group": "Bebop",
+      "name": "Bebop dorica",
+      "degrees": "F 2 b3 3 4 5 6 b7"
+    }
+  ],
+  "arpeggios": [
+    {
+      "group": "Triadi",
+      "name": "Maggiore",
+      "degrees": "F 3 5"
+    },
+    {
+      "group": "Triadi",
+      "name": "Minore",
+      "degrees": "F b3 5"
+    },
+    {
+      "group": "Triadi",
+      "name": "Diminuita",
+      "degrees": "F b3 b5"
+    },
+    {
+      "group": "Triadi",
+      "name": "Aumentata",
+      "degrees": "F 3 #5"
+    },
+    {
+      "group": "Altri accordi",
+      "name": "Sus2",
+      "degrees": "F 2 5"
+    },
+    {
+      "group": "Altri accordi",
+      "name": "Sus4",
+      "degrees": "F 4 5"
+    },
+    {
+      "group": "Altri accordi",
+      "name": "Power chord (5)",
+      "degrees": "F 5"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "Maj7",
+      "degrees": "F 3 5 7"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "7 (dominante)",
+      "degrees": "F 3 5 b7"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "m7",
+      "degrees": "F b3 5 b7"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "m7b5 (semidiminuito)",
+      "degrees": "F b3 b5 b7"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "dim7",
+      "degrees": "F b3 b5 bb7"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "mMaj7",
+      "degrees": "F b3 5 7"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "Maj7#5",
+      "degrees": "F 3 #5 7"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "7#5",
+      "degrees": "F 3 #5 b7"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "7b5",
+      "degrees": "F 3 b5 b7"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "Maj7b5",
+      "degrees": "F 3 b5 7"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "7sus4",
+      "degrees": "F 4 5 b7"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "6",
+      "degrees": "F 3 5 6"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "m6",
+      "degrees": "F b3 5 6"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "add9",
+      "degrees": "F 3 5 9"
+    },
+    {
+      "group": "Quadriadi",
+      "name": "m(add9)",
+      "degrees": "F b3 5 9"
+    },
+    {
+      "group": "Accordi estesi",
+      "name": "6/9",
+      "degrees": "F 3 5 6 9"
+    },
+    {
+      "group": "Accordi estesi",
+      "name": "Maj9",
+      "degrees": "F 3 5 7 9"
+    },
+    {
+      "group": "Accordi estesi",
+      "name": "9",
+      "degrees": "F 3 5 b7 9"
+    },
+    {
+      "group": "Accordi estesi",
+      "name": "m9",
+      "degrees": "F b3 5 b7 9"
+    },
+    {
+      "group": "Accordi estesi",
+      "name": "7b9",
+      "degrees": "F 3 5 b7 b9"
+    },
+    {
+      "group": "Accordi estesi",
+      "name": "7#9",
+      "degrees": "F 3 5 b7 #9"
+    },
+    {
+      "group": "Accordi estesi",
+      "name": "7#11",
+      "degrees": "F 3 5 b7 #11"
+    },
+    {
+      "group": "Accordi estesi",
+      "name": "Maj7#11",
+      "degrees": "F 3 5 7 #11"
+    },
+    {
+      "group": "Accordi estesi",
+      "name": "m11",
+      "degrees": "F b3 5 b7 9 11"
+    },
+    {
+      "group": "Accordi estesi",
+      "name": "13",
+      "degrees": "F 3 5 b7 9 13"
+    }
+  ],
+  "tunings": [
+    {
+      "id": "std6",
+      "name": "Chitarra standard (E A D G B E)",
+      "notes": "E2 A2 D3 G3 B3 E4"
+    },
+    {
+      "id": "dropd",
+      "name": "Drop D (D A D G B E)",
+      "notes": "D2 A2 D3 G3 B3 E4"
+    },
+    {
+      "id": "halfdown",
+      "name": "Mezzo tono sotto (Eb Ab Db Gb Bb Eb)",
+      "notes": "D#2 G#2 C#3 F#3 A#3 D#4"
+    },
+    {
+      "id": "fulldown",
+      "name": "Un tono sotto (D G C F A D)",
+      "notes": "D2 G2 C3 F3 A3 D4"
+    },
+    {
+      "id": "dadgad",
+      "name": "DADGAD",
+      "notes": "D2 A2 D3 G3 A3 D4"
+    },
+    {
+      "id": "openg",
+      "name": "Open G (D G D G B D)",
+      "notes": "D2 G2 D3 G3 B3 D4"
+    },
+    {
+      "id": "opend",
+      "name": "Open D (D A D F# A D)",
+      "notes": "D2 A2 D3 F#3 A3 D4"
+    },
+    {
+      "id": "opene",
+      "name": "Open E (E B E G# B E)",
+      "notes": "E2 B2 E3 G#3 B3 E4"
+    },
+    {
+      "id": "fourths6",
+      "name": "Tutte quarte (E A D G C F)",
+      "notes": "E2 A2 D3 G3 C4 F4"
+    },
+    {
+      "id": "bass6",
+      "name": "Basso 6 corde (B E A D G C)",
+      "notes": "B0 E1 A1 D2 G2 C3"
+    },
+    {
+      "id": "std7",
+      "name": "Chitarra 7 corde (B E A D G B E)",
+      "notes": "B1 E2 A2 D3 G3 B3 E4"
+    },
+    {
+      "id": "dropa7",
+      "name": "7 corde Drop A (A E A D G B E)",
+      "notes": "A1 E2 A2 D3 G3 B3 E4"
+    },
+    {
+      "id": "std8",
+      "name": "Chitarra 8 corde (F# B E A D G B E)",
+      "notes": "F#1 B1 E2 A2 D3 G3 B3 E4"
+    },
+    {
+      "id": "bass4",
+      "name": "Basso 4 corde (E A D G)",
+      "notes": "E1 A1 D2 G2"
+    },
+    {
+      "id": "bass4d",
+      "name": "Basso 4 corde Drop D (D A D G)",
+      "notes": "D1 A1 D2 G2"
+    },
+    {
+      "id": "violin",
+      "name": "Violino / mandolino (G D A E)",
+      "notes": "G3 D4 A4 E5"
+    },
+    {
+      "id": "bass5",
+      "name": "Basso 5 corde (B E A D G)",
+      "notes": "B0 E1 A1 D2 G2"
+    },
+    {
+      "id": "bass5c",
+      "name": "Basso 5 corde (E A D G C)",
+      "notes": "E1 A1 D2 G2 C3"
+    }
+  ],
+  "algorithms": [
+    {
+      "id": "all",
+      "name": "Tutte le note sul manico",
+      "type": "script",
+      "description": "Nessun filtro: tutte le note della struttura su tutti i 24 tasti.",
+      "code": [
+        "return {groups: [{name: 'tutte', notes: ctx.window(0, ctx.frets)}]};"
+      ]
+    },
+    {
+      "id": "caged",
+      "name": "CAGED (forme C · A · G · E · D)",
+      "type": "window",
+      "width": 4,
+      "stretch": 1,
+      "description": "Ogni forma è una finestra di 5 tasti ancorata alla fondamentale, come negli accordi C, A, G, E, D traslati sul manico. Forme A, E, D: un tasto indietro e fino a +3 in avanti; C e G: fino a 3 tasti indietro e +1 in avanti. Il tasto a +4 si aggiunge solo alle corde che resterebbero con meno di 2 note (1 per gli arpeggi). Con accordature non standard la corda di riferimento è la prima accordata su quella nota.",
+      "forms": [
+        {
+          "name": "Forma C",
+          "string": "A",
+          "fret": 3,
+          "rules": [
+            {
+              "string": 3,
+              "exclude": "7"
+            }
+          ]
+        },
+        {
+          "name": "Forma A",
+          "string": "A",
+          "fret": 1
+        },
+        {
+          "name": "Forma G",
+          "string": "E",
+          "fret": 4,
+          "rules": [
+            {
+              "string": 6,
+              "exclude": "b6"
+            },
+            {
+              "string": 2,
+              "exclude": "b3"
+            },
+            {
+              "string": 2,
+              "add": "b6"
+            },
+            {
+              "string": 1,
+              "exclude": "b6"
+            }
+          ]
+        },
+        {
+          "name": "Forma E",
+          "string": "E",
+          "fret": 1
+        },
+        {
+          "name": "Forma D",
+          "string": "D",
+          "fret": 1,
+          "rules": [
+            {
+              "string": 2,
+              "exclude": "b6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nps3",
+      "name": "Scala a 3 note per corda (N posizioni)",
+      "type": "path",
+      "description": "Tre note consecutive della scala su ogni corda; una posizione per ogni nota della scala (7 per una eptatonica), partendo dal grado scelto sulla corda più grave.",
+      "appliesTo": {
+        "kinds": [
+          "scale"
+        ],
+        "minNotes": 6
+      },
+      "strings": {
+        "start": "lowest",
+        "step": 1
+      },
+      "sequence": {
+        "order": "pitch",
+        "link": "closest",
+        "start": {
+          "$param": {
+            "label": "Posizione (grado di partenza sulla corda più grave)"
+          }
+        }
+      },
+      "notesPerString": [3],
+      "length": "strings",
+      "limits": {
+        "minKept": 0.8
+      },
+      "octave": {
+        "$param": true
+      }
+    },
+    {
+      "id": "pentslide",
+      "name": "Pentatonica con spostamento in slide (2-3-2-3-2-2)",
+      "type": "path",
+      "description": "Pentatonica a 2/3 note per corda che sale in diagonale: per esempio 3-5 · 3-5-7 · 5-7 · 5-7-9 · 8-10 · 8-10. Lo schema delle note per corda è modificabile.",
+      "appliesTo": {
+        "exactNotes": 5
+      },
+      "strings": {
+        "start": "lowest",
+        "step": 1
+      },
+      "sequence": {
+        "order": "pitch",
+        "link": "closest",
+        "start": {
+          "$param": {
+            "label": "Posizione (grado di partenza sulla corda più grave)"
+          }
+        }
+      },
+      "notesPerString": {
+        "$param": {
+          "default": [2, 3, 2, 3, 2, 2],
+          "label": "Note per corda (dalla più grave, ciclico)"
+        }
+      },
+      "length": "strings",
+      "limits": {
+        "minKept": 0.8
+      },
+      "octave": {
+        "$param": true
+      }
+    },
+    {
+      "id": "QuadskipTap",
+      "name": "string skipping Tapping (rivolti)",
+      "type": "path",
+      "description": "Quadriadi eseguite in string skipping (tapping), 3 note per corda",
+      "appliesTo": {
+        "kinds": [
+          "arpeggio"
+        ],
+        "exactNotes": 4
+      },
+      "strings": {
+        "start": {
+          "$param": {
+            "label": "Corda di partenza (nota più grave)",
+            "allowAll": false,
+            "default": "all"
+          }
+        },
+        "step": {
+          "$param": {
+            "label": "Corde saltate tra una nota e l'altra",
+            "default": 2
+          }
+        }
+      },
+      "sequence": {
+        "order": "stacked",
+        "link": "any",
+        "start": {
+          "$param": {}
+        }
+      },
+      "notesPerString": "3",
+      "length": "strings",
+      "limits": {
+        "maxSpan": {
+          "$param": {
+            "label": "Ampiezza massima (tasti)",
+            "min": 3,
+            "max": 14,
+            "default": 11
+          }
+        },
+        "maxSolutions": 60
+      }
+    },
+    {
+      "id": "3NotePenta",
+      "name": "Pentatoniche 3 note per corda",
+      "type": "window",
+      "description": "Pentatoniche eseguite a 3 note per corda, con ripetizione di una nota tra una corda e l'altra",
+      "width": 6,
+      "stretch": 1,
+      "forms": [
+        {
+          "name": "Forma E-D ",
+          "string": "E",
+          "fret": 1
+        },
+        {
+          "name": "Forma D-C",
+          "string": "D",
+          "fret": 1
+        },
+        {
+          "name": "Forma C-A",
+          "string": "A",
+          "fret": 3
+        },
+        {
+          "name": "Forma A-G",
+          "string": "A",
+          "fret": 1
+        },
+        {
+          "name": "Forma G-E",
+          "string": "E",
+          "fret": 3
+        }
+      ],
+      "appliesTo": {
+        "exactNotes": 5,
+        "kinds": [
+          "scale"
+        ]
+      },
+      "minPerString": 3
+    },
+    {
+      "id": "2NoteQuad",
+      "name": "2 Note per Corda",
+      "description": "",
+      "type": "path",
+      "strings": {
+        "start": "all",
+        "step": 1
+      },
+      "sequence": {
+        "order": "pitch",
+        "link": "closest",
+        "start": {
+          "$param": {
+            "label": "Posizione (grado di partenza)"
+          }
+        }
+      },
+      "notesPerString": "2",
+      "length": "strings",
+      "limits": {
+        "minKept": 0.8
+      },
+      "octave": {
+        "$param": true
+      },
+      "appliesTo": {
+        "exactNotes": 4
+      }
+    },
+    {
+      "id": "CustomPath",
+      "name": "Percorso Customizzabile",
+      "description": "Percorso Customizzabile dall'utente",
+      "type": "path",
+      "strings": {
+        "start": {
+          "$param": {
+            "default": "all"
+          }
+        },
+        "step": {
+          "$param": {
+            "default": 1
+          }
+        }
+      },
+      "sequence": {
+        "order": "pitch",
+        "link": "closest",
+        "start": {
+          "$param": {
+            "label": "Posizione (grado di partenza)",
+            "default": "all"
+          }
+        }
+      },
+      "notesPerString": {
+        "$param": {
+          "default": "3"
+        }
+      },
+      "length": "strings",
+      "limits": {
+        "minKept": 0.5,
+        "maxSolutions": 40
+      },
+      "octave": {
+        "$param": true
+      }
+    },
+    {
+      "id": "nuovo-percorso",
+      "name": "3 Strings Sweep",
+      "type": "path",
+      "description": "Sweep Picking su 3 corde: Combinazioni consigliate:\n1-1-2\n1-2-1\n2-1-1\n",
+      "strings": {
+        "start": "all",
+        "step": 1
+      },
+      "sequence": {
+        "order": "pitch",
+        "link": "any",
+        "start": {
+          "$param": {
+            "label": "Posizione (grado di partenza)"
+          }
+        }
+      },
+      "notesPerString": {
+        "$param": {
+          "default": "1 1 2"
+        }
+      },
+      "length": "cycle",
+      "limits": {
+        "minKept": 0.8,
+        "maxSpan": 5
+      },
+      "octave": {
+        "$param": true
+      },
+      "appliesTo": {
+        "kinds": [
+          "arpeggio"
+        ],
+        "minNotes": 3,
+        "maxNotes": 4
+      }
+    },
+    {
+      "id": "PentaStringSkipping",
+      "name": "String Skipping Tapping",
+      "type": "path",
+      "description": "",
+      "strings": {
+        "start": "all",
+        "step": 2
+      },
+      "sequence": {
+        "order": "pitch",
+        "link": "closest",
+        "start": {
+          "$param": {
+            "label": "Posizione (grado di partenza)"
+          }
+        }
+      },
+      "notesPerString": "4",
+      "length": 12,
+      "limits": {
+        "minKept": 0.8,
+        "maxSpan": {
+          "$param": {
+            "default": 11
+          }
+        }
+      },
+      "octave": {
+        "$param": true
+      },
+      "appliesTo": {
+        "exactNotes": 5
+      }
+    },
+    {
+      "id": "Triads-Sweep",
+      "name": "Triadi per Sweep Picking",
+      "type": "path",
+      "description": "Ricerca tutte le triadi adatte ad essere eseguite in sweep picking: si consiglia di selezionare solo la corda di partenza utile, e di definire un pattern di note per corda preciso",
+      "strings": {
+        "start": {
+          "$param": {
+            "default": "lowest"
+          }
+        },
+        "step": 1
+      },
+      "sequence": {
+        "order": "pitch",
+        "link": "closest",
+        "start": {
+          "$param": {
+            "label": "Posizione (grado di partenza)",
+            "allowAll": false
+          }
+        }
+      },
+      "notesPerString": {
+        "$param": {
+          "default": "1-2"
+        }
+      },
+      "length": "strings",
+      "limits": {
+        "minKept": 1,
+        "maxSolutions": 30,
+        "maxSpan": {
+          "$param": {
+            "default": 5
+          }
+        }
+      },
+      "octave": {
+        "$param": true
+      },
+      "appliesTo": {
+        "kinds": [
+          "arpeggio"
+        ],
+        "exactNotes": 3
+      }
+    }
+  ],
+  "patterns": [
+    {
+      "name": "4 Note",
+      "notes": 4,
+      "order": "1 2 3 4",
+      "move": "none",
+      "dir": "asc"
+    },
+    {
+      "name": "6 Note",
+      "notes": 6,
+      "order": "1 2 3 4 5 6",
+      "move": "none",
+      "dir": "asc"
+    },
+    {
+      "name": "5 Note",
+      "notes": 6,
+      "order": "1 2 3 4 5 2 3 4 5 6",
+      "move": "none",
+      "dir": "asc"
+    },
+    {
+      "name": "3 Note",
+      "notes": 4,
+      "order": "1 2 3 2 3 4",
+      "move": "none",
+      "dir": "asc"
+    }
+  ]
+}

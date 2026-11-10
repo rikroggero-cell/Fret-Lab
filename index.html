@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#15110e">
+<title>Fretboard Lab · diteggiature su manico</title>
+<style>
+:root{
+  --bg:#15110e; --card:#1f1914; --card2:#271f19; --line:#3a2e25; --text:#efe6d8; --muted:#a39685;
+  --accent:#e8a33d; --accent2:#e5484d; --ok:#5cc08a; --bad:#ff7a7a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{max-width:1560px;margin:0 auto;padding:14px 16px 40px}
+header.top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:4px 2px 12px}
+header.top h1{font-size:20px;margin:0;letter-spacing:.02em}
+header.top .sub{color:var(--muted);font-size:13px}
+.stage{background:linear-gradient(#1b1511,#17120f);border:1px solid var(--line);border-radius:14px;padding:10px 10px 12px}
+.board-scroll{overflow-x:auto;padding-bottom:4px}
+#board{display:block;width:100%;min-width:1180px;height:auto}
+#board text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin:8px 4px 2px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 6px;font-size:13px}
+.chip i{width:16px;height:16px;border-radius:50%;display:inline-block;border:1.5px solid rgba(255,255,255,.7)}
+.chip b{font-weight:700}
+.chip em{font-style:normal;color:var(--muted)}
+.status{margin:6px 6px 0;font-size:13.5px;color:var(--muted);display:flex;gap:8px 18px;flex-wrap:wrap}
+.status strong{color:var(--text)}
+.status .warn{color:var(--accent)}
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;margin-top:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);margin:0 0 10px}
+.card.wide{grid-column:1/-1}
+.field{display:block;margin:0 0 9px}
+.field>span{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>.field{flex:1 1 120px;min-width:0}
+select,input[type=text],input[type=number],textarea{width:100%;background:#120e0b;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit}
+select:focus,input:focus,textarea:focus{outline:2px solid rgba(232,163,61,.55);outline-offset:0}
+input.bad{border-color:var(--bad)}
+textarea{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;min-height:150px;resize:vertical}
+.check{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:14px;cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+button{background:#2d241d;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 11px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:#1b1208;border-color:var(--accent);font-weight:600}
+button.mini{padding:2px 9px;font-size:13px;border-radius:999px;margin:2px 4px 2px 0}
+.msg{font-size:13px;margin:4px 0 0;color:var(--muted)}
+.msg.bad{color:var(--bad)} .msg.ok{color:var(--ok)}
+.recog{font-size:13.5px;margin-top:4px}
+.recog .lbl{color:var(--muted);font-size:12px;display:block;margin:6px 0 2px}
+.notes-line{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(--text);background:#120e0b;border:1px solid var(--line);border-radius:8px;padding:6px 9px;margin-top:6px;word-spacing:.3em}
+.desc{font-size:13px;color:var(--muted);margin:2px 0 8px}
+details summary{cursor:pointer;color:var(--accent);font-size:13px;margin:4px 0}
+details pre{background:#120e0b;border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;font-size:12px;line-height:1.4}
+.packlist{list-style:none;padding:0;margin:8px 0}
+.packlist li{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;margin:4px 0;font-size:13.5px}
+.help{font-size:13px;color:var(--muted)}
+.help code{background:#120e0b;padding:1px 5px;border-radius:4px;color:var(--text)}
+
+details.sec{padding:0}
+details.sec>summary{list-style:none;cursor:pointer;padding:12px 14px;font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);font-weight:700;display:flex;justify-content:space-between;align-items:center}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::after{content:"▾";transition:transform .15s;color:var(--muted)}
+details.sec:not([open])>summary::after{transform:rotate(-90deg)}
+details.sec>:not(summary){margin-left:14px;margin-right:14px}
+details.sec[open]{padding-bottom:12px}
+details.inner{margin:4px 0 8px}
+details.inner>summary{color:var(--muted);font-size:13px}
+.sub{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}
+.subh{font-size:13.5px;font-weight:600;margin-bottom:6px}
+.subh .help{font-weight:400}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.xchip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:#120e0b;border-radius:999px;padding:5px 12px;cursor:pointer;font-size:14px;user-select:none}
+.xchip input{display:none}
+.xchip.on{background:#17c3b2;color:#06231f;border-color:#17c3b2;font-weight:700}
+.xchip small{color:inherit;opacity:.7}
+.xchip.dis{opacity:.35;cursor:default}
+.panels{grid-template-columns:repeat(auto-fit,minmax(340px,1fr));align-items:start}
+@media (max-width:700px){
+  .app{padding:6px}
+  .panels{grid-template-columns:1fr;gap:8px}
+  select,input[type=text],input[type=number],textarea{font-size:16px;padding:9px 10px}
+  .check{padding:5px 0;font-size:15px}
+  .xchip{padding:8px 14px;font-size:15px}
+  header.top .sub{display:none}
+  #board{min-width:900px}
+  .row>.field{flex:1 1 140px}
+  .card.wide>summary{font-size:14px}
+}
+
+.exportbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 6px 0;padding-top:8px;border-top:1px dashed var(--line)}
+.exportbar select{width:auto}
+@media (max-width:700px){.exportbar select{flex:1 1 100%}}
+
+.mainbar{display:grid;grid-template-columns:150px 1.3fr 1.3fr 1fr;gap:10px 12px;align-items:end;background:linear-gradient(180deg,#2b2014,#1f1914);border:1.5px solid var(--accent);border-radius:12px;padding:10px 12px;margin:0 0 10px}
+.mainbar .field{margin:0}
+.mainbar .field>span{color:var(--accent);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.mainbar select{font-size:16px;font-weight:600;padding:9px 10px;border-color:#6b4f25}
+.mainparams{display:contents}
+@media (max-width:900px){.mainbar{grid-template-columns:1fr 1fr}.mainbar .wide2{grid-column:span 2}}
+.transport{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0 0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.transport .bpm{display:flex;align-items:center;gap:8px;flex:1 1 280px;min-width:230px}
+.transport .bpm input[type=range]{flex:1}
+.transport .bpm input[type=number]{width:74px}
+button{background:#2d241d;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 13px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:#1b1208;border-color:var(--accent);font-weight:700;min-width:104px}
+button.primary.on{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;margin-top:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);margin:0 0 10px}
+.card.wide{grid-column:1/-1}
+.field{display:block;margin:0 0 9px}
+.field>span{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>.field{flex:1 1 130px;min-width:0}
+select,input[type=text],input[type=number],textarea{width:100%;background:#120e0b;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit}
+select:focus,input:focus,textarea:focus{outline:2px solid rgba(232,163,61,.55)}
+input.bad{border-color:var(--bad)}
+input[type=range]{accent-color:var(--accent);width:100%}
+.check{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:14px;cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+.msg{font-size:13px;margin:4px 0 0;color:var(--muted)} .msg.bad{color:var(--bad)} .msg.ok{color:var(--ok)}
+.help{font-size:13px;color:var(--muted)}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#120e0b;border:1px solid var(--line);border-radius:8px;padding:6px 9px;word-break:break-word}
+.seqline{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.seqline span{font-size:12px;font-family:ui-monospace,Menlo,monospace;background:#120e0b;border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--muted)}
+.seqline span.cur{background:var(--accent);color:#1b1208;border-color:var(--accent)}
+.vol{display:grid;grid-template-columns:110px 1fr 38px;gap:8px;align-items:center;margin:6px 0}
+.vol span:last-child{color:var(--muted);font-size:12.5px;text-align:right}
+input[type=range]{accent-color:var(--accent);width:100%}
+.stage.pl{margin-top:0}
+.tabs2{display:flex;gap:6px}.tabs2 button{border-radius:999px;padding:4px 16px}.tabs2 button.on{background:var(--accent);color:#1b1208;border-color:var(--accent);font-weight:700}
+</style>
+</head>
+<body>
+<noscript>Questa applicazione richiede JavaScript.</noscript>
+<div class="app">
+  <header class="top">
+    <h1>🎸 Fretboard Lab</h1>
+    <span class="sub">Scale, arpeggi e diteggiature sul manico · algoritmi estendibili</span>
+    <span class="tabs2"><button id="tabMain" class="on">Diteggiature</button><button id="tabPlayer">▶ Player</button></span>
+  </header>
+
+  <div id="bootError" class="card" style="display:none;margin-bottom:12px;border-color:#a33"></div>
+<div id="viewMain">
+
+  <section class="stage">
+    <div class="mainbar" id="mainBar">
+      <label class="field"><span>Fondamentale</span><select id="selRoot"></select></label>
+      <label class="field wide2"><span>Scala / arpeggio</span><select id="selLib"></select></label>
+      <label class="field wide2"><span>Algoritmo</span><select id="selAlgo"></select></label>
+      <div id="algoMain" class="mainparams"></div>
+    </div>
+    <div class="board-scroll"><svg id="board" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Manico"></svg></div>
+    <div class="legend" id="legend"></div>
+    <div class="status" id="status"></div>
+    <div class="exportbar" id="exportBar">
+      <span class="help">Esporta (solo i tasti coinvolti):</span>
+      <button id="btnPng">PNG</button>
+      <button id="btnPdf">PDF</button>
+      <button id="btnPdfAll" style="display:none"></button>
+      <select id="selExpStyle" title="Tastiera"><option value="plain">Tastiera stilizzata (bianca)</option><option value="real">Tastiera realistica (legno)</option></select>
+      <select id="selExpBg" title="Sfondo"><option value="light">Sfondo chiaro (stampa)</option><option value="dark">Sfondo scuro</option></select>
+      <select id="selExpPer" title="Forme per pagina"><option value="4">4 forme per pagina</option><option value="6" selected>6 forme per pagina</option><option value="8">8 forme per pagina</option></select>
+      <span class="msg" id="expMsg"></span>
+    </div>
+  </section>
+
+  <section class="panels">
+    <!-- 1. STRUTTURA -->
+    <details class="card sec" id="cStruct" open>
+      <summary>Scala o arpeggio</summary>
+      <div class="row">
+        <span class="help">Scala, arpeggio e fondamentale si scelgono nel riquadro sopra il manico.</span>
+      </div>
+      <div class="recog" id="recog"></div>
+      <div class="notes-line" id="noteLine"></div>
+      <details class="inner"><summary>Scrivi la struttura a mano</summary>
+        <label class="field"><span>Gradi separati da spazio, es. <code>F 2 b3</code></span>
+          <input type="text" id="inpDeg" autocomplete="off" spellcheck="false"></label>
+      </details>
+    </details>
+
+    <!-- 2. DITEGGIATURA -->
+    <details class="card sec" id="cAlgo" open>
+      <summary>Diteggiatura</summary>
+      <div id="algoParams"></div>
+      <details class="inner"><summary>Come funziona questo algoritmo</summary><div class="desc" id="algoDesc"></div></details>
+
+      <div class="sub" id="cExtra" style="display:none">
+        <div class="subh">Gradi aggiunti <span class="help">(nei tasti della forma, di un altro colore)</span></div>
+        <div class="chips" id="extraChips"></div>
+      </div>
+
+      <div class="sub" id="cOverlay">
+        <label class="check subh"><input type="checkbox" id="chkOv"> Aloni: triade CAGED sovrapposta</label>
+        <div id="ovBody" style="display:none">
+          <label class="field"><span>Accordo</span><select id="selOvSrc"></select></label>
+          <div class="row">
+            <label class="field"><span>Quali forme</span>
+              <select id="selOvSel">
+                <option value="cover">Poche, che coprono tutto</option>
+                <option value="touched">Tutte quelle toccate</option>
+                <option value="same">Stessa forma (C con C…)</option>
+              </select></label>
+            <label class="field" id="ovMinWrap" style="flex:0 0 120px"><span>Note in comune</span><input type="number" id="inpOvMin" min="1" max="8"></label>
+          </div>
+          <div class="desc" id="ovInfo"></div>
+          <div class="legend" id="ovLegend"></div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 3. STRUMENTO -->
+    <details class="card sec" id="cInstr">
+      <summary>Strumento</summary>
+      <div class="row">
+        <label class="field" style="flex:0 0 100px"><span>Corde</span><select id="selStrings"></select></label>
+        <label class="field"><span>Accordatura</span><select id="selTuning"></select></label>
+      </div>
+      <details class="inner"><summary>Accordatura manuale</summary>
+        <label class="field"><span>Dalla corda più grave, es. <code>E2 A2 D3 G3 B3 E4</code></span>
+          <input type="text" id="inpTuning" autocomplete="off" spellcheck="false"></label>
+        <div class="msg" id="tuneMsg">Premi Invio per applicare. Se scrivi più/meno note cambia anche il numero di corde.</div>
+      </details>
+      <label class="check"><input type="checkbox" id="chkFlipStr"> Corda grave in alto</label>
+      <label class="check"><input type="checkbox" id="chkFlipFret"> Capotasto a destra</label>
+    </details>
+
+    <!-- 4. ASPETTO -->
+    <details class="card sec" id="cView">
+      <summary>Aspetto</summary>
+      <div class="row">
+        <label class="field"><span>Dentro i pallini</span>
+          <select id="selLabel">
+            <option value="degree">Gradi</option>
+            <option value="note">Note</option>
+            <option value="fret">Numero del tasto</option>
+            <option value="none">Niente</option>
+          </select></label>
+        <label class="field"><span>Notazione</span>
+          <select id="selNotation">
+            <option value="en">C D Eb</option>
+            <option value="it">DO RE MIb</option>
+          </select></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>Simbolo della fondamentale</span>
+          <select id="selRootSym"><option value="F">F</option><option value="1">1</option><option value="R">R</option></select></label>
+        <label class="field"><span>Colori</span>
+          <select id="selColor">
+            <option value="root">Fondamentale evidenziata</option>
+            <option value="func">Per funzione</option>
+            <option value="degree">Per grado</option>
+          </select></label>
+        <label class="field"><span>Legno</span>
+          <select id="selWood"><option value="rosewood">Palissandro</option><option value="maple">Acero</option><option value="ebony">Ebano</option></select></label>
+      </div>
+      <label class="check"><input type="checkbox" id="chkGhost"> Altre note della struttura in trasparenza</label>
+      <label class="check"><input type="checkbox" id="chkPath"> Collega le note in ordine di esecuzione</label>
+    </details>
+
+    <!-- EDITOR ALGORITMI -->
+    <details class="card wide" id="cEditor">
+      <summary><b>Editor degli algoritmi</b> — modifica quelli di serie o i tuoi, senza toccare il codice dell'app</summary>
+      <p class="help">Scegli un algoritmo, cambia il testo JSON e premi <b>Applica</b>: l'effetto si vede subito sul manico.
+        Le modifiche a quelli di serie restano nel browser e si annullano con <b>Ripristina originale</b>.
+        <b>Duplica come nuovo</b> crea una copia tua (★) da sperimentare senza perdere l'originale. Il formato è spiegato nel manuale PDF.</p>
+      <div class="row">
+        <label class="field" style="flex:1 1 320px"><span>Algoritmo da modificare</span><select id="edAlgo"></select></label>
+        <div class="field" style="flex:2 1 460px;align-self:end">
+          <button class="primary" id="edApply">Applica</button>
+          <button id="edRestore">Ripristina originale</button>
+          <button id="edDup">Duplica come nuovo</button>
+          <button id="edSave">Scarica JSON</button>
+          <button id="edSaveAll">Scarica tutti quelli di serie</button>
+        </div>
+      </div>
+      <textarea id="edText" spellcheck="false" style="min-height:340px"></textarea>
+      <div class="msg" id="edMsg"></div>
+    </details>
+
+    <!-- PACCHETTI -->
+    <details class="card wide" id="cPacks">
+      <summary><b>Pacchetti personali</b> — carica tuoi algoritmi, scale, arpeggi e accordature (JSON)</summary>
+      <p class="help">Un pacchetto è un file JSON (lo stesso formato di <code>stock.json</code>) che può contenere <code>algorithms</code>, <code>scales</code>, <code>arpeggios</code>, <code>tunings</code>.
+        Incolla il testo qui sotto oppure carica un file <code>.json</code>; i pacchetti restano salvati nel browser.</p>
+      <div class="row">
+        <div style="flex:2 1 420px">
+          <textarea id="packText" spellcheck="false" placeholder="Incolla qui un pacchetto JSON…"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="primary" id="btnPackAdd">Aggiungi pacchetto</button>
+            <button id="btnPackExample">Inserisci esempio</button>
+            <label class="check" style="margin:0"><input type="file" id="filePack" accept=".json,application/json" style="display:none"><button type="button" id="btnPackFile">Carica file .json…</button></label>
+            <button id="btnPackExport">Esporta pacchetti caricati</button>
+          </div>
+          <div class="msg" id="packMsg"></div>
+          <ul class="packlist" id="packList"></ul>
+        </div>
+        <div style="flex:1 1 360px" class="help">
+          <b>Tipi di algoritmo</b>
+          <ul>
+            <li><code>path</code> – percorso ascendente di note successive, una corda alla volta, con vincoli (note per corda, salto di corde, ampiezza in tasti, ordine dei gradi…). I campi <code>{"$param":…}</code> diventano controlli per l'utente.</li>
+            <li><code>window</code> – finestra di tasti ancorata alla fondamentale su una corda (principio delle forme CAGED).</li>
+            <li><code>shape</code> – forma fissa traslabile: per ogni corda gli scostamenti rispetto al tasto della fondamentale.</li>
+            <li><code>script</code> – avanzato: <code>code</code> è il corpo di una funzione <code>(ctx, params, H)</code>. Esegui solo script di cui ti fidi.</li>
+          </ul>
+          Ogni algoritmo può avere <code>appliesTo</code>: <code>{"kinds":["scale"],"minNotes":5,"maxNotes":8}</code>.
+        </div>
+      </div>
+    </details>
+  </section>
+</div>
+<div id="viewPlayer" style="display:none">
+<div class="stage pl">
+  <div class="board-scroll"><svg id="pBoard" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Manico"></svg></div>
+  <div class="status" id="pStatus"></div>
+</div>
+
+<div class="transport">
+  <button class="primary" id="btnPlay">▶ Play</button>
+  <div class="bpm"><strong>BPM</strong><input type="range" id="rngBpm" min="30" max="260" step="1"><input type="number" id="inpBpm" min="30" max="260"></div>
+  <label class="check"><input type="checkbox" id="chkCount">Battuta di attacco</label>
+  <label class="check"><input type="checkbox" id="chkLoop">Loop</label>
+  <span class="help" id="progress"></span>
+</div>
+
+<div class="panels">
+  <section class="card">
+    <h2>Diteggiatura</h2>
+    <div class="help" id="scaleInfo"></div>
+    <label class="field" style="margin-top:8px"><span>Diteggiatura di partenza</span><select id="selFing"></select></label>
+    <div class="help">Scala, fondamentale, accordatura e algoritmo si scelgono nella <a href="index.html" style="color:var(--accent)">pagina principale</a>.</div>
+  </section>
+
+  <section class="card">
+    <h2>Ritmo e suono</h2>
+    <label class="field"><span>Figura ritmica (una nota per figura)</span><select id="selFig"></select></label>
+    <label class="check"><input type="checkbox" id="chkSub">Click di suddivisione (tra i battiti)</label>
+    <div class="vol"><span>Metronomo</span><input type="range" id="volM" min="0" max="100"><span id="volMv"></span></div>
+    <div class="vol"><span>Note della scala</span><input type="range" id="volN" min="0" max="100"><span id="volNv"></span></div>
+  </section>
+
+  <section class="card wide">
+    <h2>Pattern</h2>
+    <div class="row">
+      <label class="field"><span>Modalità</span>
+        <select id="selMode">
+          <option value="asc">1 · Ascendente</option>
+          <option value="desc">2 · Discendente</option>
+          <option value="ascdesc">3 · Ascendente / discendente</option>
+          <option value="descasc">4 · Discendente / ascendente</option>
+          <option value="user">5 · Pattern personalizzato</option>
+        </select></label>
+      <label class="field" id="fPreset"><span>Preset (dal file stock.json)</span><select id="selPreset"></select></label>
+    </div>
+    <div id="userBox">
+      <div class="row">
+        <label class="field"><span>Nota di partenza</span><select id="selStart"></select></label>
+        <label class="field"><span>Quante note (N)</span><input type="number" id="inpN" min="2" max="24"></label>
+        <label class="field"><span>Verso</span><select id="selDir"><option value="asc">Ascendente (1 = nota più grave)</option><option value="desc">Discendente (1 = nota più acuta, schema invertito)</option></select></label>
+      </div>
+      <label class="field"><span>Ordine di esecuzione (numeri da 1 a N, separati da spazio; si possono ripetere o saltare)</span><input type="text" id="inpOrder" placeholder="1 2 3 2 3 4"></label>
+      <label class="field"><span>Dopo il lick, la nota di partenza si sposta di…</span>
+        <select id="selMove">
+          <option value="none">Nessuno spostamento (una volta sola)</option>
+          <option value="below1">1 corda sotto (verso il grave)</option>
+          <option value="below2">2 corde sotto</option>
+          <option value="above1">1 corda sopra (verso l'acuto)</option>
+          <option value="above2">2 corde sopra</option>
+          <option value="next">Forma / posizione successiva (verso l'acuto)</option>
+          <option value="prev">Forma / posizione precedente (verso il grave)</option>
+        </select></label>
+    </div>
+    <div class="msg" id="seqMsg"></div>
+    <div class="seqline" id="seqLine"></div>
+  </section>
+
+  <section class="card wide">
+    <h2>Esporta</h2>
+    <div class="row" style="align-items:end">
+      <label class="field"><span>Titolo (facoltativo)</span><input type="text" id="inpTitle" placeholder="es. Pentatonica 1-2-3-2-3-4"></label>
+      <div class="field"><button id="btnGp">Esporta Guitar Pro (.gp)</button> <button id="btnPdfScore">Esporta PDF (pentagramma + tab)</button></div>
+    </div>
+    <div class="msg" id="gpMsg">Una passata dell'esercizio, in 4/4, al tempo scelto, con la figura ritmica selezionata (battute completate con pause).</div>
+  </section>
+</div>
+</div>
+</div>
+
+<script src="engine.js"></script>
+<script src="audio/clicks.js"></script>
+<script src="audio/gpassets.js"></script>
+<script src="stock.js"></script>
+<script src="score.js"></script>
+<script src="player.js"></script>
+<script>
+(() => {
+'use strict';
+const {FRETS, ROOTS, esc, rootLabel, parseRoot, noteName, parseStructure, finalizeStructure, recognize, STRUCTS, allPresets, defaultTuningFor,
+       parseTuning, buildContext, allAlgos, getAlgo, buildAlgoFromSpec} = FE;
+const midiNameEn = m => FE.midiName(m, 'en');
+
+/* ---- dati di serie (stock.json), modifiche locali e pacchetti dell'utente ---- */
+const OVR_KEY = 'fretlab.overrides.v1';
+let stockObj = null, overrides = {}, packs = [];
+function loadOverrides(){ try { overrides = JSON.parse(localStorage.getItem(OVR_KEY) || '{}') || {}; } catch(e){ overrides = {}; } }
+const saveOverrides = () => { try { localStorage.setItem(OVR_KEY, JSON.stringify(overrides)); } catch(e){} };
+function loadPacks(){ try { packs = JSON.parse(localStorage.getItem(PACKS_KEY) || '[]'); if (!Array.isArray(packs)) packs = []; } catch(e){ packs = []; } }
+const savePacks = () => { try { localStorage.setItem(PACKS_KEY, JSON.stringify(packs)); } catch(e){} };
+const reloadStock = () => { const r = FE.loadStock(stockObj, overrides); saveOverrides(); return r; };
+const reloadUser = () => FE.loadUser(packs);
+const EXAMPLE_PACK = {
+  name: 'Esempio',
+  scales: [{name: 'Scala di prova', degrees: 'F 2 b3 4 5 b6 7', group: 'Personali'}],
+  arpeggios: [{name: 'Maj7#11 (voicing)', degrees: 'F 3 5 7 #11'}],
+  tunings: [{name: 'Open C', notes: 'C2 G2 C3 G3 C4 E4'}],
+  algorithms: [
+    {id: '4nps', name: '4 note per corda (esempio)', type: 'path', appliesTo: {kinds: ['scale'], minNotes: 7},
+     strings: {start: 'lowest', step: 1}, sequence: {order: 'pitch', link: 'closest', start: {$param: {label: 'Posizione'}}},
+     notesPerString: [4], length: 'strings', limits: {minKept: 0.8}, octave: {$param: true}},
+    {id: 'box-pent', name: 'Box pentatonico minore, fondamentale sulla corda grave', type: 'shape',
+     anchor: {string: 6, degree: 'F'}, frets: [[0,3],[0,2],[0,2],[0,2],[0,3],[0,3]], appliesTo: {exactNotes: 5}},
+    {id: 'finestra', name: 'Finestra di 6 tasti (esempio)', type: 'window', width: 5,
+     forms: [{name: 'Fondamentale su MI', string: 'E', fret: 0}, {name: 'Fondamentale su LA', string: 'A', fret: 0}]},
+    {id: 'corde-dispari', name: 'Solo corde dispari (script)', type: 'script',
+     code: ["const out = [];", "for (let s = 0; s < ctx.n; s += 2)", "  for (let f = 0; f <= ctx.frets; f++)", "    if (ctx.board[s][f].deg >= 0) out.push({s, f});", "return {groups: [{notes: out}], info: 'Corde 1, 3, 5...'};"]}
+  ]
+};
+
+const DEFAULTS = {root:'C', degrees:'F 2 3 4 5 6 7', tuning:[40,45,50,55,59,64], flipStrings:false, flipFrets:false,
+  label:'degree', notation:'en', rootSym:'F', color:'root', ghost:true, path:false, wood:'rosewood', algo:'caged', params:{}, extras:[], overlay:{on:false, src:'auto', ext:'auto', sel:'cover', min:1, rings:false}};
+const STATE_KEY = 'fretlab.state.v1', PACKS_KEY = 'fretlab.packs.v1';
+function loadState(){
+  const s = JSON.parse(JSON.stringify(DEFAULTS));
+  try {
+    const raw = JSON.parse(localStorage.getItem(STATE_KEY) || 'null');
+    if (raw && typeof raw === 'object'){
+      for (const k of Object.keys(DEFAULTS)) if (raw[k] !== undefined && typeof raw[k] === typeof DEFAULTS[k]) s[k] = raw[k];
+      if (!Array.isArray(s.tuning) || s.tuning.length < 1 || s.tuning.length > 12 || s.tuning.some(x => typeof x !== 'number')) s.tuning = DEFAULTS.tuning.slice();
+      if (!ROOTS.includes(s.root)) s.root = 'C';
+      s.overlay = Object.assign({}, DEFAULTS.overlay, s.overlay || {});
+      s.extras = Array.isArray(raw && raw.extras) ? raw.extras.filter(x => Number.isInteger(x) && x > 0 && x < 12) : [];
+    }
+  } catch(e){}
+  return s;
+}
+let state = loadState();
+const saveState = () => { try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch(e){} };
+
+/* ===== UI ===== */
+const $ = id => document.getElementById(id);
+const el = {};
+['selRoot','selLib','inpDeg','recog','noteLine','selStrings','selTuning','inpTuning','tuneMsg','chkFlipStr','chkFlipFret','selAlgo','algoDesc','algoParams','algoMain',
+ 'btnPng','btnPdf','btnPdfAll','selExpBg','selExpStyle','selExpPer','expMsg','chkOv','cExtra','extraChips','ovBody','selOvSrc','selOvSel','inpOvMin','ovInfo','ovLegend','ovMinWrap','edAlgo','edText','edMsg','edApply','edRestore','edDup','edSave','edSaveAll','selLabel','selNotation','selRootSym','selColor','selWood','chkGhost','chkPath','legend','status','packText','packMsg','packList','btnPackAdd','btnPackExample','btnPackFile','filePack','btnPackExport'
+].forEach(id => el[id] = $(id));
+
+let uiSig = {algoList:'', params:'', lib:'', presets:'', root:''};
+
+function fillStaticControls(){
+  el.selStrings.innerHTML = Array.from({length:10}, (_, i) => `<option value="${i+3}">${i+3}</option>`).join('');
+  el.selLabel.value = state.label; el.selNotation.value = state.notation; el.selRootSym.value = state.rootSym;
+  el.selColor.value = state.color; el.selWood.value = state.wood;
+  el.chkGhost.checked = state.ghost; el.chkPath.checked = state.path;
+  el.chkFlipStr.checked = state.flipStrings; el.chkFlipFret.checked = state.flipFrets;
+  el.inpDeg.value = state.degrees;
+}
+function fillRoots(){
+  const sig = state.notation + '|' + state.root;
+  if (uiSig.root === sig) return; uiSig.root = sig;
+  el.selRoot.innerHTML = ROOTS.map(r => `<option value="${r}">${rootLabel(r, state.notation)}</option>`).join('');
+  el.selRoot.value = state.root;
+}
+function fillLibrary(currentId){
+  const sig = STRUCTS.length + '|' + STRUCTS.map(s => s.name).join('').length;
+  if (uiSig.lib !== sig){
+    uiSig.lib = sig;
+    let h = '<option value="custom">— personalizzata —</option>';
+    for (const [kind, title] of [['scale','Scale'],['arpeggio','Arpeggi']]){
+      const groups = new Map();
+      STRUCTS.filter(s => s.kind === kind).forEach(s => { if (!groups.has(s.group)) groups.set(s.group, []); groups.get(s.group).push(s); });
+      for (const [g, items] of groups) h += `<optgroup label="${esc(title + ' · ' + g)}">` + items.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('') + '</optgroup>';
+    }
+    el.selLib.innerHTML = h;
+  }
+  el.selLib.value = currentId || 'custom';
+}
+function fillPresets(){
+  const n = state.tuning.length;
+  const list = allPresets().filter(p => p.n === n);
+  const sig = n + '|' + list.map(p => p.id).join(',');
+  if (uiSig.presets !== sig){
+    uiSig.presets = sig;
+    el.selTuning.innerHTML = list.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('') + '<option value="custom">Personalizzata</option>';
+  }
+  const match = list.find(p => p.m.length === state.tuning.length && p.m.every((v, i) => v === state.tuning[i]));
+  el.selTuning.value = match ? match.id : 'custom';
+  el.selStrings.value = String(n);
+  if (document.activeElement !== el.inpTuning) el.inpTuning.value = state.tuning.map(midiNameEn).join(' ');
+}
+
+const ensureParams = (id, defs) => FE.ensureParams(state.params, id, defs);
+const MAIN_PARAMS = ['form', 'start'];
+const buildParamControls = (id, defs) => {
+  FE.buildParamControls(el.algoMain, id, defs.filter(d => MAIN_PARAMS.includes(d.id)), state.params, refresh);
+  FE.buildParamControls(el.algoParams, id, defs.filter(d => !MAIN_PARAMS.includes(d.id)), state.params, refresh);
+};
+const resetParamSig = () => { el.algoParams._sig = ''; el.algoMain._sig = ''; };
+
+function refresh(){
+  FE.settings.notation = state.notation; FE.settings.rootSym = state.rootSym;
+  fillRoots();
+  // struttura
+  const parsed = parseStructure(state.degrees);
+  const struct = parsed.degrees.length ? finalizeStructure(parsed.degrees) : null;
+  let rec = {exact: [], contained: []};
+  if (struct){
+    rec = recognize(struct);
+    if (rec.exact.length){ struct.kind = rec.exact[0].item.kind; struct.name = rec.exact[0].item.name; }
+  }
+  const sameItem = rec.exact.find(e => e.same);
+  fillLibrary(sameItem ? sameItem.item.id : null);
+  el.inpDeg.classList.toggle('bad', !!parsed.errors.length || !struct);
+  // gradi aggiunti: attivi solo per le scale marcate "extras" in stock.json
+  const exactScale = rec.exact.find(e => e.item.kind === 'scale' && e.item.extras);
+  const extraOn = !!(struct && exactScale);
+  const semisOn = extraOn ? state.extras.filter(x => !struct.semis.map(v => ((v % 12) + 12) % 12).includes(x)) : [];
+  let ext = null;
+  if (extraOn && semisOn.length){
+    const labels = semisOn.map(x => FE.EXTRA_LABELS[x]);
+    const up = parseStructure(state.degrees + ' ' + labels.join(' '));
+    if (up.degrees.length){ const us = finalizeStructure(up.degrees); ext = {labels, rec: recognize(us), size: us.size}; }
+  }
+  renderRecognition(struct, parsed, rec, ext);
+  renderExtraChips(struct, extraOn);
+
+  fillPresets();
+
+  const root = parseRoot(state.root);
+  if (!struct){
+    el.noteLine.textContent = '';
+    el.legend.innerHTML = '';
+    FE.drawBoard($('board'), {n: state.tuning.length, tuning: state.tuning, structure: {sorted: []}, board: state.tuning.map(() => Array.from({length: FRETS + 1}, () => ({deg: -1}))), root}, {groups: []}, state);
+    el.status.innerHTML = '<span class="warn">Inserisci una struttura intervallare, ad esempio: F 2 3 4 5 6 7</span>';
+    el.algoParams.innerHTML = ''; el.algoMain.innerHTML = ''; el.selAlgo.innerHTML = ''; resetParamSig(); uiSig.algoList = '';
+    saveState(); return;
+  }
+  const ctx = buildContext(state.tuning, state.root, struct);
+
+  // algoritmi compatibili
+  const usable = allAlgos().filter(a => { try { return a.appliesTo(ctx); } catch(e){ return false; } });
+  if (!usable.some(a => a.id === state.algo)) state.algo = 'all';
+  const listSig = usable.map(a => a.id + a.name).join('|');
+  if (uiSig.algoList !== listSig){
+    uiSig.algoList = listSig;
+    el.selAlgo.innerHTML = usable.map(a => `<option value="${esc(a.id)}">${esc(a.name)}${a.user ? ' ★' : ''}${a.modified ? ' ·' : ''}</option>`).join('');
+  }
+  el.selAlgo.value = state.algo;
+  const algo = getAlgo(state.algo);
+  el.algoDesc.textContent = algo.description || '';
+  let defs = []; try { defs = algo.params(ctx) || []; } catch(e){ console.error(e); }
+  const params = ensureParams(algo.id, defs);
+  buildParamControls(algo.id, defs);
+
+  const run = FE.runAlgorithm(ctx, algo, params); const result = run.result; lastError = run.error;
+
+  const ovCfg = renderOverlay(ctx, result, params);
+  const extraList = extraOn ? FE.extraNotes(ctx, result, semisOn) : [];
+  lastRender = {ctx, algo, params, defs, result, extraList, semisOn, struct, extraOn, ovCfgObj: ovCfg ? lastOvCfgObj : null};
+  FE.drawBoard($('board'), ctx, result, Object.assign({}, state, {overlay: ovCfg, extras: extraList}));
+  scrollBoardToNotes(result); updateExportUi();
+  renderLegend(ctx);
+  if (extraList.length) el.legend.insertAdjacentHTML('beforeend', semisOn.map(x => `<span class="chip"><i style="background:#17c3b2;border-color:#0b6e63"></i><b>${esc(FE.EXTRA_LABELS[x])}</b><em>aggiunto</em></span>`).join(''));
+  const total = new Set(); result.groups.forEach(g => g.notes.forEach(nn => total.add(nn.s + ':' + nn.f)));
+  const bits = [`<span><strong>${esc(rootLabel(state.root, state.notation))} ${esc(struct.name || 'struttura personalizzata')}</strong></span>`,
+                `<span>${esc(algo.name)}${result.info ? ' · ' + esc(result.info) : ''}</span>`, `<span>${total.size} note mostrate</span>`];
+  if (result.message) bits.push(`<span class="warn">${esc(result.message)}</span>`);
+  el.status.innerHTML = bits.join('');
+  if (!edDirty && edLoadedId !== state.algo) loadEditor(state.algo);
+  saveState();
+}
+
+const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+function renderOverlay(ctx, result, params){
+  const o = state.overlay; el.chkOv.checked = !!o.on; el.ovBody.style.display = o.on ? '' : 'none';
+  if (!o.on) return null;
+  const st = ctx.structure, isArp = st.kind === 'arpeggio';
+  const opts = [];
+  if (isArp) opts.push(['self', `L'arpeggio stesso (${rootLabel(state.root, state.notation)} ${st.name || ''})`]);
+  st.sorted.forEach((d, i) => opts.push(['d' + (i + 1), `Armonizzazione del ${ROMAN[i] || i + 1} grado (${noteName(ctx.root, d, state.notation)})`]));
+  const sig = opts.map(x => x[1]).join('|');
+  if (el.selOvSrc._sig !== sig){ el.selOvSrc._sig = sig; el.selOvSrc.innerHTML = opts.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join(''); }
+  let src = o.src === 'auto' || !opts.some(x => x[0] === o.src) ? (isArp ? 'self' : 'd1') : o.src;
+  el.selOvSrc.value = src;  el.selOvSel.value = o.sel; el.inpOvMin.value = o.min;
+  el.ovMinWrap.style.display = o.sel === 'touched' ? '' : 'none';
+  const cfg = {source: src === 'self' ? 'self' : 'degree', degree: src === 'self' ? 1 : +src.slice(1), selection: o.sel, minShared: o.min, algo: 'caged'};
+  lastOvCfgObj = cfg;
+  const ov = FE.overlayLayers(ctx, {result, params}, cfg);
+  el.ovInfo.textContent = ov.info || ov.message || '';
+  const seen = new Map(); (ov.layers || []).forEach(l => seen.set(l.idx, l));
+  el.ovLegend.innerHTML = [...seen.values()].map(l => `<span class="chip"><i style="background:transparent;border:3px solid ${l.color}"></i><b>${esc(l.form)}</b></span>`).join('');
+  return ov;
+}
+function bindOverlay(){
+  const set = (k, v) => { state.overlay[k] = v; refresh(); };
+  el.chkOv.addEventListener('change', () => set('on', el.chkOv.checked));
+  el.selOvSrc.addEventListener('change', () => set('src', el.selOvSrc.value));
+  el.selOvSel.addEventListener('change', () => set('sel', el.selOvSel.value));
+  el.inpOvMin.addEventListener('input', () => set('min', Math.max(1, +el.inpOvMin.value || 1)));
+}
+
+function renderLegend(ctx){
+  const st = ctx.structure;
+  el.legend.innerHTML = st.sorted.map(d => {
+    const c = FE.dotColors(d, state);
+    return `<span class="chip"><i style="background:${c.fill};border-color:${c.stroke === '#fff' ? 'rgba(255,255,255,.8)' : c.stroke}"></i><b>${esc(FE.degLabelShown(d, state))}</b><em>${esc(noteName(ctx.root, d, state.notation))}</em></span>`;
+  }).join('');
+  el.noteLine.textContent = st.sorted.map(d => noteName(ctx.root, d, state.notation)).join('  ');
+}
+
+let lastRender = null, lastOvCfgObj = null;
+let lastScrollSig = '';
+function scrollBoardToNotes(result){
+  const box = document.querySelector('.board-scroll'), svg = $('board');
+  if (!box || box.scrollWidth <= box.clientWidth + 4 || !svg._fretPos) return;
+  const fr = []; result.groups.forEach(g => g.notes.forEach(n => fr.push(n.f)));
+  if (!fr.length) return;
+  const sig = state.algo + '|' + JSON.stringify(state.params[state.algo] || {}) + '|' + state.root + state.degrees + state.flipFrets;
+  if (sig === lastScrollSig) return; lastScrollSig = sig;
+  // porta al centro la prima zona di note (le più basse, o le più alte con capotasto a destra)
+  const f = state.flipFrets ? Math.max(...fr) : Math.min(...fr), px = svg._fretPos(f) / svg._W * svg.getBoundingClientRect().width;
+  box.scrollTo({left: Math.max(0, px - box.clientWidth * 0.3), behavior: 'smooth'});
+}
+function renderExtraChips(struct, on){
+  el.cExtra.style.display = on ? '' : 'none';
+  if (!on){ el.extraChips.innerHTML = ''; return; }
+  const inS = new Set(struct.semis.map(v => ((v % 12) + 12) % 12));
+  let h = '';
+  for (let x = 1; x < 12; x++){
+    const dis = inS.has(x), on2 = !dis && state.extras.includes(x);
+    h += `<label class="xchip${on2 ? ' on' : ''}${dis ? ' dis' : ''}"><input type="checkbox" data-x="${x}" ${on2 ? 'checked' : ''} ${dis ? 'disabled' : ''}>${esc(FE.EXTRA_LABELS[x])}</label>`;
+  }
+  el.extraChips.innerHTML = h;
+}
+function renderRecognition(struct, parsed, rec, ext){
+  let h = '';
+  if (parsed.errors.length) h += `<div class="msg bad">Gradi non riconosciuti: ${parsed.errors.map(e => '<code>' + esc(e) + '</code>').join(' ')}. Usa F (o 1), 2, b3, #4, 5, b6, 7, 9, #11…</div>`;
+  if (!struct){ el.recog.innerHTML = h; return; }
+  if (parsed.addedRoot) h += '<div class="msg">La fondamentale (F) mancava ed è stata aggiunta.</div>';
+  if (rec.exact.length){
+    h += '<span class="lbl">Riconosciuta come:</span>' + rec.exact.map(e =>
+      `<button class="mini" data-lib="${esc(e.item.id)}" title="${esc(e.item.degrees)}">${esc(e.item.name)}${e.same ? '' : ' (grafia diversa)'} · ${e.item.kind === 'scale' ? 'scala' : 'arpeggio'}</button>`).join('');
+  } else {
+    h += `<span class="lbl">Struttura personalizzata di ${struct.size} note: nessuna scala o arpeggio dell'elenco ha queste note.</span>`;
+  }
+  if (rec.contained.length){
+    h += '<span class="lbl">Le sue note sono contenute in:</span>' + rec.contained.map(it =>
+      `<button class="mini" data-lib="${esc(it.id)}" title="${esc(it.degrees)}">${esc(it.name)}</button>`).join('');
+  }
+  if (ext){
+    const nm = ext.labels.join(' + ');
+    if (ext.rec.exact.length) h += `<span class="lbl">Con ${esc(nm)} aggiunto coincide con:</span>` + ext.rec.exact.map(e => `<button class="mini" data-lib="${esc(e.item.id)}" title="${esc(e.item.degrees)}">${esc(e.item.name)}</button>`).join('');
+    h += `<span class="lbl">Con ${esc(nm)} aggiunto, le note sono contenute solo in:</span>` + (ext.rec.contained.length ? ext.rec.contained.map(it => `<button class="mini" data-lib="${esc(it.id)}" title="${esc(it.degrees)}">${esc(it.name)}</button>`).join('') : '<span class="msg">nessuna scala dell\'elenco</span>');
+    el.recog.innerHTML = h; return;
+  }
+  el.recog.innerHTML = h;
+}
+
+
+/* =====================================================================
+   ESPORTAZIONE (PNG / PDF) - solo la parte di manico coinvolta
+   ===================================================================== */
+const EXP_SCALE = 2;
+function viewOpts(extra){ return Object.assign({}, state, extra || {}); }
+/** raggruppa le note in fasce di tasti separate (es. la stessa forma in due ottave) */
+function fretBands(result, extraList){
+  const ranges = [];
+  for (const g of result.groups || []){
+    if (!g.notes.length) continue;
+    const fr = g.notes.map(n => n.f); ranges.push([Math.min(...fr), Math.max(...fr)]);
+  }
+  (extraList || []).forEach(n => ranges.push([n.f, n.f]));
+  ranges.sort((a, b) => a[0] - b[0]);
+  const out = [];
+  for (const r of ranges){
+    const last = out[out.length - 1];
+    if (last && r[0] <= last[1] + 2) last[1] = Math.max(last[1], r[1]); else out.push(r.slice());
+  }
+  return out;
+}
+/** SVG ritagliato sui tasti [lo,hi] (con un tasto di margine) -> {markup, w, h} */
+function cropSvg(svg, lo, hi, bgCol, mutedCol){
+  const g = svg._geom, FR = g.FRETS;
+  const a = Math.max(0, lo - 1), b = Math.min(FR, hi + 1);
+  const xa = a === 0 ? g.L - 46 : g.fx(a - 1), xb = g.fx(b);
+  const needLabels = a > 0, pad = 8, lab = needLabels ? 26 : 0;
+  let x0, x1;
+  if (!g.flip){ x0 = xa - pad - lab; x1 = xb + pad; } else { x0 = g.W - xb - pad; x1 = g.W - xa + pad + lab; }
+  x0 = Math.max(x0, 0); x1 = Math.min(x1, g.W);
+  let extra = '';
+  if (needLabels){
+    const sx = g.flip ? x1 - lab : x0;
+    extra += `<rect x="${sx.toFixed(1)}" y="0" width="${lab}" height="${g.H}" fill="${bgCol}"/>`;
+    for (let s = 0; s < g.n; s++){
+      const lx = g.flip ? x1 - 4 : x0 + 4;
+      extra += `<text x="${lx.toFixed(1)}" y="${g.Y(s).toFixed(1)}" dy=".35em" text-anchor="${g.flip ? 'end' : 'start'}" font-size="13" fill="${mutedCol}">${g.names[s]}</text>`;
+    }
+  }
+  const w = x1 - x0, yv = Math.max(0, g.yTop - 30), h = g.H - yv;
+  const inner = svg.innerHTML + extra;
+  return {markup: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0.toFixed(1)} ${yv.toFixed(1)} ${w.toFixed(1)} ${h}" width="${Math.round(w * EXP_SCALE)}" height="${Math.round(h * EXP_SCALE)}" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">${inner}</svg>`, w, h};
+}
+function loadImg(markup){
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img); img.onerror = () => rej(new Error('Rasterizzazione non riuscita'));
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(markup);
+  });
+}
+const SANS = 'system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+const themeColors = bg => bg === 'dark' ? {bg: '#15110e', text: '#efe6d8', muted: '#a39685'} : {bg: '#ffffff', text: '#1d1a17', muted: '#6b6258'};
+/** una "cella": intestazione + una o più fasce di manico ritagliate (nessuna legenda) */
+async function renderCell(R, o){
+  const {ctx, result, extraList, struct} = R, S = EXP_SCALE, C = themeColors(o.bg);
+  const tmp = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  FE.settings.notation = state.notation; FE.settings.rootSym = state.rootSym;
+  const ov = R.ovCfgObj ? FE.overlayLayers(ctx, {result, params: R.params}, R.ovCfgObj) : null;
+  FE.drawBoard(tmp, ctx, result, viewOpts({overlay: ov, extras: extraList, style: o.style}));
+  const bands = fretBands(result, extraList), list = bands.length ? bands : [[0, FRETS]];
+  const crops = list.map(([lo, hi]) => cropSvg(tmp, lo, hi, C.bg, C.muted));
+  const imgs = await Promise.all(crops.map(c => loadImg(c.markup)));
+  const full = o.header === 'full', m = (full ? 22 : 4) * S, gap = 8 * S, titleH = (full ? 76 : 26) * S;
+  const maxW = Math.max(...crops.map(c => c.w * S)), W = Math.round(Math.max(maxW + 2 * m, full ? 560 * S : 0));
+  const H = Math.round(titleH + imgs.reduce((a, im, i) => a + crops[i].h * S + gap, 0) + (full ? 24 : 2) * S);
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const g = cv.getContext('2d'); g.fillStyle = C.bg; g.fillRect(0, 0, W, H); g.textBaseline = 'alphabetic';
+  if (full){
+    g.fillStyle = C.text; g.font = `700 ${26 * S}px ${SANS}`;
+    g.fillText(`${rootLabel(state.root, state.notation)} ${struct.name || 'struttura personalizzata'}`, m, m + 20 * S);
+    g.fillStyle = C.muted; g.font = `${14 * S}px ${SANS}`;
+    const sub = (result.info || '').replace(/\s*·\s*tasti [^·]*/g, '');
+    g.fillText(`${R.algo.name}${sub ? ' · ' + sub : ''}`.slice(0, 120), m, m + 42 * S);
+    const tn = state.tuning.map(mi => FE.midiName(mi, state.notation)).join(' ');
+    g.fillText(tn, W - m - g.measureText(tn).width, m + 20 * S);
+  } else {
+    g.fillStyle = C.text; g.font = `700 ${17 * S}px ${SANS}`; g.fillText(o.label || '', m, 18 * S);
+  }
+  let y = titleH;
+  imgs.forEach((im, i) => { const w = crops[i].w * S; g.drawImage(im, full ? (W - w) / 2 : m, y, w, crops[i].h * S); y += crops[i].h * S + gap; });
+  if (full){ g.fillStyle = C.muted; g.font = `${11 * S}px ${SANS}`; g.textAlign = 'right'; g.fillText('Fretboard Lab', W - m, H - 8 * S); }
+  return cv;
+}
+/** pagina A4 verticale con una griglia a 2 colonne di celle compatte */
+function composePage(cells, o, headTitle, headSub, pageNo, pageCount, perPage){
+  const PWpx = 1654, PHpx = 2339, mx = 90, top = 90, C = themeColors(o.bg);
+  const cv = document.createElement('canvas'); cv.width = PWpx; cv.height = PHpx;
+  const g = cv.getContext('2d'); g.fillStyle = C.bg; g.fillRect(0, 0, PWpx, PHpx);
+  g.fillStyle = C.text; g.font = `700 48px ${SANS}`; g.fillText(headTitle, mx, top + 36);
+  g.fillStyle = C.muted; g.font = `26px ${SANS}`; g.fillText(headSub, mx, top + 78);
+  g.textAlign = 'right'; g.fillText(`Fretboard Lab · ${pageNo}/${pageCount}`, PWpx - mx, PHpx - 50); g.textAlign = 'left';
+  const cols = 2, rows = Math.ceil(perPage / cols), gx = 40, gy = 30, y0 = top + 120, avH = PHpx - y0 - 110;
+  const cw = (PWpx - 2 * mx - gx) / cols, ch = (avH - gy * (rows - 1)) / rows;
+  const f = Math.min(...cells.map(c => Math.min(cw / c.width, ch / c.height)));
+  const rowH = []; cells.forEach((c, i) => { const r = Math.floor(i / cols); rowH[r] = Math.max(rowH[r] || 0, c.height * f); });
+  cells.forEach((c, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const yy = y0 + rowH.slice(0, row).reduce((a, v) => a + v + gy, 0);
+    g.drawImage(c, mx + col * (cw + gx), yy, c.width * f, c.height * f);
+  });
+  return cv;
+}
+const slugName = t => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'diteggiatura';
+function currentFileBase(R){
+  const frm = (R.defs.find(d => d.id === 'form') || {}).options;
+  const fv = R.params.form !== undefined && frm ? (frm.find(o => String(o.value) === String(R.params.form)) || {}).label : '';
+  return slugName([rootLabel(state.root, state.notation), R.struct.name || 'struttura', R.algo.id, fv].filter(Boolean).join(' '));
+}
+function saveBlob(blob, name){ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+/** PDF minimo: una pagina A4 orizzontale per immagine JPEG, senza librerie */
+function buildPdf(pages){
+  const enc = new TextEncoder(), parts = [], offs = []; let pos = 0;
+  const push = d => { const u = typeof d === 'string' ? enc.encode(d) : d; parts.push(u); pos += u.length; };
+  const obj = (n, body) => { offs[n] = pos; push(`${n} 0 obj\n`); push(body); push('\nendobj\n'); };
+  push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  const M = 28, np = pages.length;
+  const kids = pages.map((_, i) => `${3 + i * 3} 0 R`).join(' ');
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, `<< /Type /Pages /Kids [${kids}] /Count ${np} >>`);
+  pages.forEach((p, i) => {
+    const pg = 3 + i * 3, ct = pg + 1, im = pg + 2;
+    const PW = p.pw || 842, PH = p.ph || 595;
+    const sc = Math.min((PW - 2 * M) / p.w, (PH - 2 * M) / p.h), w = p.w * sc, h = p.h * sc, x = (PW - w) / 2, y = PH - M - h;
+    obj(pg, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Contents ${ct} 0 R /Resources << /XObject << /Im0 ${im} 0 R >> >> >>`);
+    const cs = `q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /Im0 Do Q`;
+    obj(ct, `<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`);
+    offs[im] = pos; push(`${im} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${p.w} /Height ${p.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpg.length} >>\nstream\n`);
+    push(p.jpg); push('\nendstream\nendobj\n');
+  });
+  const total = 3 + np * 3, xr = pos;
+  push(`xref\n0 ${total}\n0000000000 65535 f \n`);
+  for (let n = 1; n < total; n++) push(String(offs[n]).padStart(10, '0') + ' 00000 n \n');
+  push(`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF\n`);
+  const out = new Uint8Array(pos); let o = 0; for (const u of parts){ out.set(u, o); o += u.length; }
+  return new Blob([out], {type: 'application/pdf'});
+}
+const canvasJpeg = cv => { const b = atob(cv.toDataURL('image/jpeg', 0.92).split(',')[1]), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return {jpg: u, w: cv.width, h: cv.height}; };
+function expMsg(t, bad){ el.expMsg.textContent = t || ''; el.expMsg.className = 'msg' + (bad ? ' bad' : ''); }
+async function doExport(kind, all){
+  const R = lastRender; if (!R) return;
+  try {
+    expMsg('Preparo il file…');
+    const o = {bg: el.selExpBg.value, style: el.selExpStyle.value, header: 'full'};
+    if (!all){
+      const cv = await renderCell(R, o), base = currentFileBase(R);
+      if (kind === 'png') saveBlob(await new Promise(r => cv.toBlob(r, 'image/png')), base + '.png');
+      else saveBlob(buildPdf([Object.assign(canvasJpeg(cv), {pw: 842, ph: 595})]), base + '.pdf');
+    } else {
+      const sel = R.defs.find(d => d.type === 'select' && (d.id === 'form' || d.id === 'start'));
+      const opts = sel.options.filter(o2 => o2.value !== 'all'), per = +el.selExpPer.value || 6;
+      const cells = [];
+      for (const op of opts){
+        const params = Object.assign({}, R.params, {[sel.id]: op.value});
+        const run = FE.runAlgorithm(R.ctx, R.algo, params); if (run.error) continue;
+        const extraList = R.extraOn ? FE.extraNotes(R.ctx, run.result, R.semisOn) : [];
+        cells.push(await renderCell(Object.assign({}, R, {params, result: run.result, extraList}), {bg: o.bg, style: o.style, header: 'compact', label: op.label}));
+      }
+      if (!cells.length) throw new Error('Nessuna diteggiatura da esportare');
+      const title = `${rootLabel(state.root, state.notation)} ${R.struct.name || 'struttura personalizzata'}`;
+      const sub = `${R.algo.name} · ${state.tuning.map(mi => FE.midiName(mi, state.notation)).join(' ')}`;
+      const pages = [], pc = Math.ceil(cells.length / per);
+      for (let i = 0; i < cells.length; i += per) pages.push(Object.assign(canvasJpeg(composePage(cells.slice(i, i + per), o, title, sub, pages.length + 1, pc, per)), {pw: 595, ph: 842}));
+      saveBlob(buildPdf(pages), currentFileBase(R).replace(/-[^-]*$/, '') + '-tutte.pdf');
+    }
+    expMsg('Fatto.');
+  } catch(err){ console.error(err); expMsg('Esportazione non riuscita: ' + err.message, true); }
+}
+function updateExportUi(){
+  if (!lastRender){ return; }
+  const sel = lastRender.defs.find(d => d.type === 'select' && (d.id === 'form' || d.id === 'start'));
+  const n = sel ? sel.options.filter(o => o.value !== 'all').length : 0;
+  el.btnPdfAll.style.display = n > 1 ? '' : 'none'; el.selExpPer.style.display = n > 1 ? '' : 'none';
+  if (n > 1) el.btnPdfAll.textContent = `PDF di tutte le ${sel.id === 'form' ? 'forme' : 'posizioni'} (${n} pagine)`;
+}
+function bindExport(){
+  el.btnPng.addEventListener('click', () => doExport('png'));
+  el.btnPdf.addEventListener('click', () => doExport('pdf'));
+  el.btnPdfAll.addEventListener('click', () => doExport('pdf', true));
+}
+
+/* ---- eventi ---- */
+function bind(){
+  bindOverlay(); bindExport();
+  el.extraChips.addEventListener('change', e => { const x = +e.target.dataset.x; if (!x) return; const i = state.extras.indexOf(x); if (e.target.checked && i < 0) state.extras.push(x); else if (!e.target.checked && i >= 0) state.extras.splice(i, 1); refresh(); });
+  el.selRoot.addEventListener('change', () => { state.root = el.selRoot.value; refresh(); });
+  el.selLib.addEventListener('change', () => {
+    const it = STRUCTS.find(s => s.id === el.selLib.value);
+    if (it){ state.degrees = it.degrees; el.inpDeg.value = it.degrees; refresh(); }
+  });
+  el.inpDeg.addEventListener('input', () => { state.degrees = el.inpDeg.value; refresh(); });
+  el.recog.addEventListener('click', e => {
+    const b = e.target.closest('button[data-lib]'); if (!b) return;
+    const it = STRUCTS.find(s => s.id === b.dataset.lib);
+    if (it){ state.degrees = it.degrees; el.inpDeg.value = it.degrees; refresh(); }
+  });
+  el.selStrings.addEventListener('change', () => { state.tuning = defaultTuningFor(+el.selStrings.value); refresh(); });
+  el.selTuning.addEventListener('change', () => {
+    const p = allPresets().find(p => p.id === el.selTuning.value);
+    if (p){ state.tuning = p.m.slice(); el.inpTuning.value = state.tuning.map(midiNameEn).join(' '); el.inpTuning.classList.remove('bad'); el.tuneMsg.textContent = ''; refresh(); }
+  });
+  el.inpTuning.addEventListener('change', () => {
+    const r = parseTuning(el.inpTuning.value);
+    if (r.error){ el.inpTuning.classList.add('bad'); el.tuneMsg.className = 'msg bad'; el.tuneMsg.textContent = r.error; return; }
+    el.inpTuning.classList.remove('bad'); el.tuneMsg.className = 'msg'; el.tuneMsg.textContent = `${r.midis.length} corde: ${r.midis.map(midiNameEn).join(' ')}`;
+    state.tuning = r.midis; el.inpTuning.value = r.midis.map(midiNameEn).join(' '); refresh();
+  });
+  el.chkFlipStr.addEventListener('change', () => { state.flipStrings = el.chkFlipStr.checked; refresh(); });
+  el.chkFlipFret.addEventListener('change', () => { state.flipFrets = el.chkFlipFret.checked; refresh(); });
+  el.selAlgo.addEventListener('change', () => { state.algo = el.selAlgo.value; refresh(); });
+  el.selLabel.addEventListener('change', () => { state.label = el.selLabel.value; refresh(); });
+  el.selNotation.addEventListener('change', () => { state.notation = el.selNotation.value; resetParamSig(); refresh(); });
+  el.selRootSym.addEventListener('change', () => { state.rootSym = el.selRootSym.value; resetParamSig(); refresh(); });
+  el.selColor.addEventListener('change', () => { state.color = el.selColor.value; refresh(); });
+  el.selWood.addEventListener('change', () => { state.wood = el.selWood.value; refresh(); });
+  el.chkGhost.addEventListener('change', () => { state.ghost = el.chkGhost.checked; refresh(); });
+  el.chkPath.addEventListener('change', () => { state.path = el.chkPath.checked; refresh(); });
+
+  // pacchetti
+  el.btnPackExample.addEventListener('click', () => { el.packText.value = JSON.stringify(EXAMPLE_PACK, null, 2); });
+  el.btnPackFile.addEventListener('click', () => el.filePack.click());
+  el.filePack.addEventListener('change', () => {
+    const f = el.filePack.files[0]; if (!f) return;
+    const rd = new FileReader(); rd.onload = () => { el.packText.value = String(rd.result); addPackFromText(String(rd.result)); el.filePack.value = ''; }; rd.readAsText(f);
+  });
+  el.btnPackAdd.addEventListener('click', () => addPackFromText(el.packText.value));
+  el.btnPackExport.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(packs.length === 1 ? packs[0] : packs, null, 2)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'fretboard-lab-pacchetti.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+  el.packList.addEventListener('click', e => {
+    const b = e.target.closest('button[data-del]'); if (!b) return;
+    packs.splice(+b.dataset.del, 1); savePacks(); reloadPacks('Pacchetto rimosso.', 'ok');
+  });
+}
+
+/* ---- editor degli algoritmi ---- */
+let edDirty = false, edLoadedId = null, lastError = '';
+function specToText(spec){
+  const c = JSON.parse(JSON.stringify(spec));
+  for (const k of ['code', 'paramsCode']) if (typeof c[k] === 'string') c[k] = c[k].split('\n');
+  return JSON.stringify(c, null, 2).replace(/\[\s*(-?\d+(?:,\s*-?\d+)*)\s*\]/g, (m, inner) => '[' + inner.replace(/,\s+/g, ', ') + ']');
+}
+function edMsg(t, kind){ el.edMsg.className = 'msg ' + (kind || ''); el.edMsg.textContent = t; }
+function renderEditorList(keep){
+  const cur = keep || el.edAlgo.value || state.algo;
+  el.edAlgo.innerHTML = allAlgos().map(a => `<option value="${esc(a.id)}">${esc(a.name)}${a.user ? ' ★' : ''}${a.modified ? ' · modificato' : ''}</option>`).join('');
+  el.edAlgo.value = getAlgo(cur) ? cur : 'all';
+}
+function loadEditor(id){
+  const def = getAlgo(id); if (!def) return;
+  renderEditorList(id);
+  el.edText.value = specToText(def.spec);
+  edLoadedId = id; edDirty = false;
+  el.edRestore.disabled = !def.modified;
+  el.edRestore.style.opacity = def.modified ? 1 : .45;
+}
+function downloadJSON(obj, name){
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function afterEdit(id, msg){
+  reloadStock(); reloadUser();
+  uiSig.algoList = ''; resetParamSig(); uiSig.lib = ''; uiSig.presets = '';
+  state.algo = id; lastError = '';
+  refresh(); renderPackList();
+  loadEditor(getAlgo(id) ? id : 'all');
+  if (lastError) edMsg(`Applicato, ma l'algoritmo produce un errore: ${lastError}`, 'bad');
+  else if (state.algo !== id) edMsg("Salvato, ma l'algoritmo non è applicabile alla struttura attuale (vedi appliesTo): scegli una scala o un arpeggio compatibile.", 'bad');
+  else edMsg(msg, 'ok');
+}
+function parseEditorSpec(){
+  try { return JSON.parse(el.edText.value); } catch(e){ edMsg('JSON non valido: ' + e.message, 'bad'); return null; }
+}
+function bindEditor(){
+  el.edAlgo.addEventListener('change', () => { loadEditor(el.edAlgo.value); edMsg('', ''); });
+  el.edText.addEventListener('input', () => { edDirty = true; });
+  el.edApply.addEventListener('click', () => {
+    const spec = parseEditorSpec(); if (!spec) return;
+    const id = el.edAlgo.value, def = getAlgo(id); if (!def) return;
+    if (def.stock) spec.id = id;
+    try { buildAlgoFromSpec(spec, id, !def.stock); } catch(e){ return edMsg('Errore nella specifica: ' + e.message, 'bad'); }
+    if (def.stock){
+      const base = def.base;
+      if (JSON.stringify(spec) === JSON.stringify(base)) delete overrides[id]; else overrides[id] = spec;
+      saveOverrides();
+    } else if (def.source){ packs[def.source.pack].algorithms[def.source.index] = spec; savePacks(); }
+    afterEdit(id, 'Applicato e salvato nel browser.');
+  });
+  el.edRestore.addEventListener('click', () => {
+    const id = el.edAlgo.value, def = getAlgo(id);
+    if (!def || !def.stock || !def.modified) return edMsg('Questo algoritmo è già quello originale.', '');
+    delete overrides[id]; saveOverrides(); afterEdit(id, 'Ripristinata la versione originale.');
+  });
+  el.edDup.addEventListener('click', () => {
+    const spec = parseEditorSpec(); if (!spec) return;
+    let k = packs.findIndex(p => p && p.name === 'Copie locali');
+    if (k < 0){ packs.push({name: 'Copie locali', algorithms: []}); k = packs.length - 1; }
+    const list = packs[k].algorithms, base = (spec.id || el.edAlgo.value).replace(/^u\d+:/, '').replace(/-copia\d*$/, '');
+    let nid = base + '-copia', n = 2; while (list.some(a => a.id === nid)) nid = base + '-copia' + n++;
+    spec.id = nid; spec.name = (spec.name || nid).replace(/ \(copia\d*\)$/, '') + ` (copia${n > 2 ? n - 1 : ''})`;
+    try { buildAlgoFromSpec(spec, 'tmp', true); } catch(e){ return edMsg('Errore nella specifica: ' + e.message, 'bad'); }
+    list.push(spec); savePacks();
+    afterEdit(`u${k}:${nid}`, 'Creata la copia (★): ora la modifichi senza toccare l\'originale.');
+  });
+  el.edSave.addEventListener('click', () => {
+    const spec = parseEditorSpec(); if (!spec) return;
+    downloadJSON({name: spec.name || 'Algoritmo', algorithms: [spec]}, (spec.id || 'algoritmo').replace(/[^\w.-]+/g, '_') + '.json');
+  });
+  el.edSaveAll.addEventListener('click', () => downloadJSON({name: 'Algoritmi di serie', algorithms: stockObj.algorithms}, 'fretboard-lab-algoritmi-di-serie.json'));
+}
+function addPackFromText(text){
+  let obj;
+  try { obj = JSON.parse(text); } catch(e){ return setPackMsg('JSON non valido: ' + e.message, 'bad'); }
+  const list = Array.isArray(obj) ? obj : [obj];
+  // prova a validare prima di salvare
+  const before = packs.length;
+  try {
+    const tmp = packs.concat(list);
+    const bak = packs; packs = tmp;
+    const report = reloadUser();
+    const fails = report.slice(before).filter(r => r.error);
+    if (fails.length){ packs = bak; reloadUser(); return setPackMsg(fails[0].error, 'bad'); }
+    const warns = report.slice(before).flatMap(r => r.warnings || []);
+    savePacks(); uiSig.lib = ''; uiSig.algoList = ''; uiSig.presets = '';
+    renderPackList();
+    setPackMsg(`Aggiunto. ${warns.length ? 'Attenzione: ' + warns.join(' · ') : 'Gli elementi compaiono negli elenchi (contrassegnati con ★ gli algoritmi e le accordature).'}`, warns.length ? 'bad' : 'ok');
+    refresh();
+  } catch(e){ setPackMsg(e.message, 'bad'); }
+}
+function reloadPacks(msg, kind){
+  reloadUser(); uiSig.lib = ''; uiSig.algoList = ''; uiSig.presets = '';
+  renderPackList(); setPackMsg(msg, kind); refresh();
+}
+function setPackMsg(t, kind){ el.packMsg.className = 'msg ' + (kind || ''); el.packMsg.textContent = t; }
+function renderPackList(){
+  if (el.edAlgo.options.length || packs.length === 0) renderEditorList();
+  el.packList.innerHTML = packs.map((p, i) => `<li><span>${esc((p && p.name) || 'Pacchetto ' + (i+1))}</span><button data-del="${i}">Rimuovi</button></li>`).join('');
+}
+
+
+/* =====================================================================
+   9. AVVIO
+   ===================================================================== */
+const bootError = $('bootError');
+function showBootError(msg){
+  bootError.style.display = 'block';
+  bootError.innerHTML = '<b>Non riesco a caricare stock.json.</b> ' + esc(msg) + '<br>Se hai aperto il file con un doppio clic il browser lo impedisce: avvia un piccolo server (<code>python3 -m http.server</code> nella cartella) oppure pubblicalo su Netlify. In alternativa carica il file a mano: <input type="file" id="fileStock" accept=".json,application/json">';
+  $('fileStock').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader(); rd.onload = () => { try { start(JSON.parse(String(rd.result))); } catch(err){ showBootError('File non valido: ' + err.message); } }; rd.readAsText(f);
+  });
+}
+let started = false;
+function start(stock){
+  stockObj = stock; loadOverrides(); loadPacks();
+  let rep;
+  try { rep = reloadStock(); } catch(e){ return showBootError(e.message); }
+  const userRep = reloadUser();
+  bootError.style.display = 'none';
+  if (!started){ fillStaticControls(); bind(); bindEditor(); started = true; if (window.innerWidth >= 900) document.querySelectorAll('details.sec').forEach(d => { if (!d.classList.contains('wide')) d.open = true; }); }
+  uiSig = {algoList:'', params:'', lib:'', presets:'', root:''}; el.algoParams._sig = '';
+  if (!getAlgo(state.algo)) state.algo = 'all';
+  renderPackList();
+  const probs = rep.warnings.concat(userRep.filter(r => r.error).map(r => r.error));
+  if (probs.length) setPackMsg('Attenzione: ' + probs.join(' · '), 'bad');
+  refresh();
+}
+fetch('stock.json', {cache: 'no-cache'})
+  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  .then(start)
+  .catch(e => {
+    let mine = null; try { mine = JSON.parse(localStorage.getItem('fretlab.localstock') || 'null'); } catch(x){}
+    const data = mine || window.FL_STOCK;
+    if (!data) return showBootError(e.message);
+    start(data);
+    bootError.style.display = 'block'; bootError.style.borderColor = 'var(--line)';
+    bootError.innerHTML = (mine ? '<b>Uso il tuo stock.json caricato a mano</b> (salvato in questo browser).' : '<b>Uso i dati incorporati (stock.js), non il tuo stock.json.</b> Aprendo il file in locale il browser non può leggerlo da solo.')
+      + '<br>Carica il tuo stock.json: <input type="file" id="fileStock2" accept=".json,application/json">' + (mine ? ' <button id="btnStockReset" class="mini">Torna ai dati incorporati</button>' : '');
+    $('fileStock2').addEventListener('change', ev => {
+      const f = ev.target.files[0]; if (!f) return;
+      f.text().then(t => { JSON.parse(t); localStorage.setItem('fretlab.localstock', t); location.reload(); }).catch(err => alert('File non valido: ' + err.message));
+    });
+    const r = $('btnStockReset'); if (r) r.addEventListener('click', () => { localStorage.removeItem('fretlab.localstock'); location.reload(); });
+  });
+
+const showView = v => {
+  $('viewMain').style.display = v === 'main' ? '' : 'none'; $('viewPlayer').style.display = v === 'player' ? '' : 'none';
+  $('tabMain').classList.toggle('on', v === 'main'); $('tabPlayer').classList.toggle('on', v === 'player');
+  if (v === 'player') window.Player.show(); else window.Player.hide();
+};
+$('tabMain').addEventListener('click', () => showView('main')); $('tabPlayer').addEventListener('click', () => showView('player'));
+window.FretLab = {
+  pdfTools: {buildPdf, canvasJpeg, saveBlob},
+  getPatterns: () => ((stockObj && stockObj.patterns) || []).concat(...packs.map(p => Array.isArray(p.patterns) ? p.patterns : [])),
+  getState: () => state,
+  setState: patch => { Object.assign(state, patch); fillStaticControls(); refresh(); },
+  _test: {parseStructure, finalizeStructure, buildContext, parseTuning, noteName, parseRoot, recognize, getAlgo, allAlgos, STRUCTS, start}
+};
+})();
+</script>
+</body>
+</html>

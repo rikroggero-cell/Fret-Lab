@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fretboard Lab · Editor di stock.json</title>
+<style>
+:root{--bg:#15110e;--card:#1f1914;--card2:#271f19;--line:#3a2e25;--text:#efe6d8;--muted:#a39685;--accent:#e8a33d;--bad:#ff7a7a;--ok:#5cc08a}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{max-width:1560px;margin:0 auto;padding:12px 16px 60px}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:2px 0 10px}
+.bar h1{font-size:18px;margin:0 8px 0 0}
+.bar .file{color:var(--muted);font-size:13px}
+.bar .dirty{color:var(--accent);font-size:13px;font-weight:600}
+.spacer{flex:1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);margin:0 0 10px}
+button{background:#2d241d;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 11px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--accent)} button:disabled{opacity:.4;cursor:default}
+button.primary{background:var(--accent);color:#1b1208;border-color:var(--accent);font-weight:600}
+button.mini{padding:1px 8px;font-size:13px;border-radius:7px}
+select,input[type=text],input[type=number],textarea{background:#120e0b;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;max-width:100%}
+select:focus,input:focus,textarea:focus{outline:2px solid rgba(232,163,61,.55)}
+input.bad,textarea.bad{border-color:var(--bad)}
+textarea{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;width:100%;resize:vertical}
+.field{display:block;margin:0 0 8px}.field>span{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.check{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;cursor:pointer;margin-right:12px}
+.check input{accent-color:var(--accent)}
+.msg{font-size:13px;color:var(--muted);margin:4px 0}.msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}
+.banner{background:#33260f;border:1px solid var(--accent);border-radius:10px;padding:8px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+/* anteprima */
+#pvCard.sticky{position:sticky;top:0;z-index:5}
+.boardwrap{overflow-x:auto}
+#pvBoard{display:block;width:100%;min-width:1100px;height:auto}
+#pvBoard text{font-family:system-ui,sans-serif}
+.pvctl{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
+.pvctl .field{margin:0}
+.pvstatus{font-size:13.5px;color:var(--muted);margin-top:6px;display:flex;gap:6px 16px;flex-wrap:wrap}
+.pvstatus .warn{color:var(--accent)} .pvstatus .err{color:var(--bad)}
+/* tab */
+.tabs{display:flex;gap:6px;margin:14px 0 10px;border-bottom:1px solid var(--line)}
+.tab{border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;padding:7px 16px;background:#1a1511;cursor:pointer;color:var(--muted)}
+.tab.on{background:var(--card);color:var(--accent);font-weight:600}
+.cols{display:grid;grid-template-columns:300px 1fr;gap:12px;align-items:start}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+/* lista algoritmi */
+.alist{list-style:none;margin:8px 0 0;padding:0}
+.alist li{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;margin:4px 0;cursor:pointer;background:#1a1511}
+.alist li.on{border-color:var(--accent);background:#2b2014}
+.alist .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.badge{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:0 7px;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}.dot.bad{background:var(--bad)}
+/* form */
+.sect{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 10px;background:#1a1511}
+.sect>h3{margin:0 0 8px;font-size:13px;color:var(--accent);text-transform:uppercase;letter-spacing:.07em}
+.crow{display:grid;grid-template-columns:230px 1fr;gap:6px 14px;padding:7px 0;border-top:1px dashed #33291f}
+.crow:first-of-type{border-top:none}
+.clabel{font-size:14px}.clabel small{display:block;color:var(--muted);font-size:12px;line-height:1.3;margin-top:2px}
+.cctl{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cpar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+@media(max-width:700px){.crow{grid-template-columns:1fr}}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{font-size:12px;color:var(--muted);text-align:left;font-weight:500;padding:3px 6px}
+table.t td{padding:3px 4px;vertical-align:middle}
+table.t input{width:100%}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+.grid{border-collapse:separate;border-spacing:2px;margin-top:6px}
+.grid th{font-size:11px;color:var(--muted);font-weight:400;min-width:26px}
+.grid td.cell{width:26px;height:26px;border-radius:6px;background:#120e0b;border:1px solid var(--line);cursor:pointer;text-align:center;font-size:11px;color:#6b5f52}
+.grid td.cell.on{background:var(--accent);color:#1b1208;border-color:var(--accent)}
+.grid td.cell.anch{outline:2px solid #e5484d;outline-offset:-2px}
+.grid td.rl{font-size:12px;color:var(--muted);padding-right:6px;text-align:right;white-space:nowrap}
+details summary{cursor:pointer;color:var(--accent);font-size:13px;margin:6px 0}
+.help{font-size:13px;color:var(--muted)}
+.help code{background:#120e0b;padding:1px 5px;border-radius:4px;color:var(--text)}
+.row-inv input.bad{border-color:var(--bad)}
+.ok-dot{color:var(--ok)} .bad-dot{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="bar">
+    <h1>🎸 Editor di <span style="color:var(--accent)">stock.json</span></h1>
+    <button id="btnOpen">Apri stock.json…</button>
+    <button id="btnSave" class="primary">Salva</button>
+    <button id="btnDownload">Scarica una copia</button>
+    <input type="file" id="fileOpen" accept=".json,application/json" style="display:none">
+    <span class="file" id="fileName"></span><span class="dirty" id="dirtyMark"></span>
+    <span class="spacer"></span>
+    <a href="index.html" target="_blank" style="color:var(--muted);font-size:13px">Apri l'app ↗</a>
+  </div>
+  <div id="notice"></div>
+
+  <!-- ANTEPRIMA -->
+  <div class="card" id="pvCard">
+    <h2>Anteprima · come la vedrebbe l'utente</h2>
+    <div class="pvctl">
+      <label class="field"><span>Fondamentale</span><select id="pvRoot"></select></label>
+      <label class="field"><span>Scala / arpeggio</span><select id="pvLib" style="width:210px"></select></label>
+      <label class="field"><span>Gradi</span><input type="text" id="pvDeg" style="width:170px" class="mono" spellcheck="false"></label>
+      <label class="field"><span>Accordatura</span><select id="pvTunSel" style="width:200px"></select></label>
+      <label class="field"><span>Note (dal grave)</span><input type="text" id="pvTun" style="width:190px" class="mono" spellcheck="false"></label>
+      <label class="field"><span>Pallini</span><select id="pvLabel"><option value="degree">Gradi</option><option value="note">Note</option><option value="fret">Tasto</option></select></label>
+      <label class="field"><span>Notazione</span><select id="pvNot"><option value="en">C D E</option><option value="it">DO RE MI</option></select></label>
+    </div>
+    <div class="pvctl">
+      <span id="pvParams" class="pvctl" style="margin:0"></span>
+      <label class="field"><span>Mostra soluzione</span><select id="pvSol"></select></label>
+      <label class="check"><input type="checkbox" id="pvPath"> collega le note</label>
+      <label class="check"><input type="checkbox" id="pvGhost" checked> altre note in trasparenza</label>
+      <label class="check"><input type="checkbox" id="pvOv"> sovrapponi accordo CAGED</label>
+      <label class="field" style="margin:0"><select id="pvOvSel"><option value="cover">copertura minima</option><option value="touched">forme toccate</option><option value="same">stessa forma</option></select></label>
+      <label class="field" style="margin:0"><select id="pvOvDeg"></select></label>
+      <label class="check"><input type="checkbox" id="pvSticky"> anteprima fissa in alto</label>
+    </div>
+    <div class="boardwrap"><svg id="pvBoard" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="pvstatus" id="pvStatus"></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" data-tab="algos">Algoritmi</div>
+    <div class="tab" data-tab="structs">Scale e arpeggi</div>
+    <div class="tab" data-tab="tunings">Accordature</div>
+    <div class="tab" data-tab="patterns">Pattern (Player)</div>
+  </div>
+
+  <!-- TAB ALGORITMI -->
+  <div id="tab-algos" class="cols">
+    <div class="card">
+      <h2>Algoritmi</h2>
+      <div class="row">
+        <select id="newType"><option value="path">Percorso (path)</option><option value="window">Finestra (window)</option><option value="shape">Forma disegnata (shape)</option><option value="script">Script</option></select>
+        <button id="btnNew" class="mini">＋ Nuovo</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button id="btnDup" class="mini">Duplica</button><button id="btnDel" class="mini">Elimina</button>
+        <button id="btnUp" class="mini">↑</button><button id="btnDown" class="mini">↓</button>
+      </div>
+      <ul class="alist" id="alist"></ul>
+      <p class="help">L'ordine di questa lista è l'ordine nel menu dell'app.</p>
+    </div>
+    <div id="aform"></div>
+  </div>
+
+  <!-- TAB STRUTTURE -->
+  <div id="tab-structs" style="display:none">
+    <div class="card"><h2>Scale</h2><div id="tblScales"></div></div>
+    <div class="card" style="margin-top:12px"><h2>Arpeggi</h2><div id="tblArps"></div></div>
+  </div>
+
+  <!-- TAB ACCORDATURE -->
+  <div id="tab-tunings" style="display:none">
+    <div class="card"><h2>Accordature</h2><div id="tblTun"></div></div>
+  </div>
+  <div id="tab-patterns" style="display:none">
+    <div class="card"><h2>Pattern del Player</h2>
+      <p class="help">Preset che compaiono nel Player per la scala scelta. <b>Scale</b>: nomi separati da virgola (vuoto = tutte le scale). <b>Ordine</b>: numeri da 1 a N (nota 1 = la più grave, o la più acuta se il verso è discendente). <b>Spostamento</b> dopo il lick: scegli dal menu (1 o 2 corde sotto/sopra, forma successiva o precedente).</p>
+      <div id="tblPat"></div></div>
+  </div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+(() => {
+'use strict';
+const FE = window.FE;
+const $ = (s, r = document) => r.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* ---------- piccole utilità per costruire il DOM ---------- */
+function h(tag, props, ...kids){
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})){
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.style.cssText = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, '');
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return e;
+}
+const getP = (o, p) => p.split('.').reduce((a, k) => a == null ? undefined : a[k], o);
+function setP(o, p, v){ const ks = p.split('.'); let c = o; ks.slice(0, -1).forEach(k => { if (typeof c[k] !== 'object' || c[k] === null || Array.isArray(c[k])) c[k] = {}; c = c[k]; }); c[ks[ks.length - 1]] = v; }
+function delP(o, p){ const ks = p.split('.'); let c = o; for (const k of ks.slice(0, -1)){ if (c[k] == null) return; c = c[k]; } delete c[ks[ks.length - 1]]; }
+const isParam = v => v !== null && typeof v === 'object' && !Array.isArray(v) && '$param' in v;
+
+/* ---------- controlli ---------- */
+function txt(value, on, attrs){ const i = h('input', Object.assign({type: 'text', spellcheck: 'false'}, attrs || {})); i.value = value == null ? '' : value; i.addEventListener('input', () => on(i.value, i)); return i; }
+function num(value, on, attrs){ const i = h('input', Object.assign({type: 'number', style: 'width:90px'}, attrs || {})); i.value = value == null ? '' : value; i.addEventListener('input', () => on(i.value === '' ? null : +i.value, i)); return i; }
+function sel(opts, value, on, attrs){
+  const s = h('select', attrs || {}, opts.map(([v, l]) => h('option', {value: v}, l)));
+  s.value = String(value); if (s.value !== String(value) && opts.length) s.value = opts[0][0];
+  s.addEventListener('change', () => on(s.value)); return s;
+}
+function check(label, checked, on){ const i = h('input', {type: 'checkbox'}); i.checked = !!checked; i.addEventListener('change', () => on(i.checked)); return h('label', {class: 'check'}, i, label); }
+function fld(label, ctl, hint){ return h('label', {class: 'field'}, h('span', {}, label), ctl, hint ? h('small', {class: 'help'}, hint) : null); }
+const sect = (title, ...kids) => h('div', {class: 'sect'}, h('h3', {}, title), ...kids);
+
+/* =====================================================================
+   DOCUMENTO
+   ===================================================================== */
+let doc = null, selIdx = 0, dirty = false, fileHandle = null, fileLabel = '';
+let errors = {algorithms: {}, scales: {}, arpeggios: {}, tunings: {}}, globalError = '';
+const DRAFT_KEY = 'fretlab.editor.draft.v1';
+let draftTimer = null;
+
+function normalizeDoc(d){
+  d.format = d.format || 'fretlab-stock/1';
+  ['scales', 'arpeggios', 'tunings', 'algorithms', 'patterns'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+  return d;
+}
+function specText(d){
+  const c = clone(d);
+  const strCode = o => { for (const k of ['code', 'paramsCode']) if (typeof o[k] === 'string') o[k] = o[k].split('\n'); };
+  (c.algorithms || []).forEach(strCode);
+  return JSON.stringify(c, null, 2).replace(/\[\s*(-?\d+(?:,\s*-?\d+)*)\s*\]/g, (m, inner) => '[' + inner.replace(/,\s+/g, ', ') + ']') + '\n';
+}
+function syncEngine(){
+  errors = {algorithms: {}, scales: {}, arpeggios: {}, tunings: {}}; globalError = '';
+  try {
+    const rep = FE.loadStock(clone(doc), {});
+    rep.warnings.forEach(w => { const m = /^(\w+)\[(\d+)\]: (.*)$/.exec(w); if (m && errors[m[1]]) errors[m[1]][+m[2]] = m[3]; else globalError = w; });
+  } catch(e){ globalError = e.message; }
+  const seen = {}; doc.algorithms.forEach((a, i) => { if (seen[a.id] !== undefined) errors.algorithms[i] = errors.algorithms[i] || `id "${a.id}" già usato dall'algoritmo ${seen[a.id] + 1}`; seen[a.id] = i; });
+}
+function changed(opts){
+  dirty = true; syncEngine();
+  updateTitleBar(); renderPreview(); markList(); markTables();
+  if (!(opts && opts.keepRaw)) refreshRaw();
+  clearTimeout(draftTimer); draftTimer = setTimeout(saveDraft, 500);
+}
+function saveDraft(){ try { localStorage.setItem(DRAFT_KEY, JSON.stringify({savedAt: Date.now(), name: fileLabel, doc})); } catch(e){} }
+function updateTitleBar(){ $('#fileName').textContent = fileLabel; $('#dirtyMark').textContent = dirty ? '● modifiche non salvate' : ''; }
+function loadDoc(d, label, handle){
+  doc = normalizeDoc(d); fileLabel = label; fileHandle = handle || null; dirty = false; selIdx = 0;
+  syncEngine(); updateTitleBar(); fillPvLists(); renderAll();
+}
+function renderAll(){ renderList(); renderForm(); renderStructTables(); renderTunTable(); renderPatTable(); renderPreview(); }
+
+/* ---------- file ---------- */
+async function openFile(){
+  if (window.showOpenFilePicker){
+    try {
+      const [fh] = await window.showOpenFilePicker({types: [{description: 'JSON', accept: {'application/json': ['.json']}}]});
+      const f = await fh.getFile(); loadDoc(JSON.parse(await f.text()), f.name, fh); note('Aperto ' + f.name + '. "Salva" lo sovrascrive direttamente.', 'ok'); return;
+    } catch(e){ if (e.name === 'AbortError') return; note('Impossibile aprire: ' + e.message, 'bad'); return; }
+  }
+  $('#fileOpen').click();
+}
+async function saveFile(){
+  const text = specText(doc);
+  if (fileHandle && fileHandle.createWritable){
+    try { const w = await fileHandle.createWritable(); await w.write(text); await w.close(); dirty = false; localStorage.removeItem(DRAFT_KEY); updateTitleBar(); note('Salvato in ' + fileLabel + '.', 'ok'); return; }
+    catch(e){ note('Scrittura diretta non riuscita (' + e.message + '): scarico una copia.', 'bad'); }
+  }
+  download(text);
+}
+function download(text){
+  const a = h('a', {href: URL.createObjectURL(new Blob([text || specText(doc)], {type: 'application/json'})), download: 'stock.json'});
+  document.body.append(a); a.click(); a.remove();
+  if (!text) return; dirty = false; localStorage.removeItem(DRAFT_KEY); updateTitleBar();
+  note('Scaricato stock.json: sostituiscilo nella cartella del sito e ripubblica.', 'ok');
+}
+function note(t, kind){ const n = $('#notice'); n.innerHTML = ''; if (t) n.append(h('div', {class: 'msg ' + (kind || '')}, t)); }
+
+/* =====================================================================
+   ANTEPRIMA
+   ===================================================================== */
+const pv = {root: 'C', degrees: 'F 2 3 4 5 6 7', tuning: 'E2 A2 D3 G3 B3 E4', label: 'degree', notation: 'en', path: true, ghost: true, sol: 'all', params: {}, ov: false, ovSel: 'cover'};
+const rootLabel = r => FE.rootLabel(r, pv.notation);
+function fillPvLists(){
+  $('#pvRoot').innerHTML = FE.ROOTS.map(r => `<option value="${r}">${rootLabel(r)}</option>`).join(''); $('#pvRoot').value = pv.root;
+  let hh = '<option value="">— personalizzata —</option>';
+  for (const [kind, title] of [['scale', 'Scale'], ['arpeggio', 'Arpeggi']]){
+    const g = new Map(); FE.STRUCTS.filter(s => s.kind === kind).forEach(s => { if (!g.has(s.group)) g.set(s.group, []); g.get(s.group).push(s); });
+    for (const [name, items] of g) hh += `<optgroup label="${FE.esc(title + ' · ' + name)}">` + items.map(s => `<option value="${FE.esc(s.degrees)}">${FE.esc(s.name)}</option>`).join('') + '</optgroup>';
+  }
+  $('#pvLib').innerHTML = hh;
+  $('#pvTunSel').innerHTML = '<option value="">— personalizzata —</option>' + FE.PRESETS.map(p => `<option value="${FE.esc(p.m.map(m => FE.midiName(m, 'en')).join(' '))}">${FE.esc(p.name)}</option>`).join('');
+  syncPvInputs();
+}
+function syncPvInputs(){
+  $('#pvDeg').value = pv.degrees; $('#pvTun').value = pv.tuning;
+  $('#pvLib').value = [...$('#pvLib').options].some(o => o.value === pv.degrees) ? pv.degrees : '';
+  $('#pvTunSel').value = [...$('#pvTunSel').options].some(o => o.value === pv.tuning) ? pv.tuning : '';
+}
+function pvContext(){
+  const parsed = FE.parseStructure(pv.degrees); if (!parsed.degrees.length) return {error: 'Gradi non validi nell\'anteprima.'};
+  const tun = FE.parseTuning(pv.tuning); if (tun.error) return {error: 'Accordatura dell\'anteprima: ' + tun.error};
+  const st = FE.finalizeStructure(parsed.degrees);
+  const rec = FE.recognize(st); if (rec.exact.length){ st.kind = rec.exact[0].item.kind; st.name = rec.exact[0].item.name; }
+  return {ctx: FE.buildContext(tun.midis, pv.root, st), st};
+}
+const curAlgoSpec = () => doc && doc.algorithms[selIdx];
+function renderPreview(){
+  FE.settings.notation = pv.notation; FE.settings.rootSym = 'F';
+  const svg = $('#pvBoard'), stat = $('#pvStatus');
+  const pc = pvContext();
+  const opt = {flipStrings: false, flipFrets: false, label: pv.label, notation: pv.notation, rootSym: 'F', color: 'root', wood: 'rosewood', ghost: pv.ghost, path: pv.path};
+  stat.innerHTML = '';
+  const add = (t, cls) => stat.append(h('span', {class: cls || ''}, t));
+  if (pc.error){ add(pc.error, 'err'); return; }
+  const spec = curAlgoSpec();
+  let result = {groups: []};
+  const ctx = pc.ctx;
+  if (!spec){ add('Nessun algoritmo selezionato.', 'warn'); }
+  else {
+    const err = errors.algorithms[selIdx];
+    const algo = FE.getAlgo(spec.id);
+    if (err || !algo || (algo.spec !== undefined && false)){ add('Algoritmo non valido: ' + (err || 'non costruibile'), 'err'); }
+    else {
+      let defs = []; try { defs = algo.params(ctx) || []; } catch(e){ add('Errore nei parametri: ' + e.message, 'err'); }
+      const params = FE.ensureParams(pv.params, algo.id, defs);
+      FE.buildParamControls($('#pvParams'), algo.id, defs, pv.params, renderPreview);
+      const run = FE.runAlgorithm(ctx, algo, params);
+      result = run.result;
+      if (run.error) add('Errore: ' + run.error, 'err');
+      // soluzioni
+      const solSel = $('#pvSol'), n = result.groups.length;
+      const sig = n + '|' + result.groups.map(g => g.name).join(',');
+      if (solSel._sig !== sig){ solSel._sig = sig; solSel.innerHTML = '<option value="all">Tutte (' + n + ')</option>' + result.groups.map((g, i) => `<option value="${i}">${i + 1}. ${FE.esc(g.name || '')}</option>`).join(''); }
+      if (pv.sol !== 'all' && +pv.sol >= n) pv.sol = 'all';
+      solSel.value = pv.sol;
+      if (pv.sol !== 'all') result = Object.assign({}, result, {groups: [result.groups[+pv.sol]]});
+      add((spec.name || spec.id), 'b'); if (result.info) add(result.info);
+      let ok = true; try { ok = algo.appliesTo(ctx); } catch(e){}
+      if (!ok) add('⚠ non si applicherebbe a questa struttura (vedi "Si applica a")', 'warn');
+      if (result.message) add(result.message, 'warn');
+    }
+  }
+  if (!spec || errors.algorithms[selIdx]){ $('#pvParams').innerHTML = ''; $('#pvParams')._sig = ''; }
+  if (pv.ov){
+    const size = ctx.structure.size, ds = $('#pvOvDeg'), isArp = ctx.structure.kind === 'arpeggio';
+    const sig = size + (isArp ? 'a' : 's');
+    if (ds._sig !== sig){ ds._sig = sig; ds.innerHTML = (isArp ? '<option value="self">l\'arpeggio stesso</option>' : '') + Array.from({length: size}, (_, i) => `<option value="${i + 1}">grado ${i + 1}</option>`).join(''); ds.value = isArp ? 'self' : '1'; }
+    const v = ds.value, cfg = {source: v === 'self' ? 'self' : 'degree', degree: v === 'self' ? 1 : +v, selection: pv.ovSel, algo: 'caged'};
+    const alg = spec && FE.getAlgo(spec.id);
+    const ov = FE.overlayLayers(ctx, {result, params: alg ? pv.params[alg.id] || {} : {}}, cfg);
+    opt.overlay = ov; add(ov.info || ov.message || '', 'b');
+  }
+  FE.drawBoard(svg, ctx, result, opt);
+  const total = new Set(); result.groups.forEach(g => g.notes.forEach(nn => total.add(nn.s + ':' + nn.f)));
+  add(total.size + ' note mostrate');
+}
+function bindPreview(){
+  $('#pvRoot').addEventListener('change', e => { pv.root = e.target.value; renderPreview(); });
+  $('#pvLib').addEventListener('change', e => { if (e.target.value){ pv.degrees = e.target.value; syncPvInputs(); renderPreview(); } });
+  $('#pvDeg').addEventListener('input', e => { pv.degrees = e.target.value; $('#pvLib').value = [...$('#pvLib').options].some(o => o.value === pv.degrees) ? pv.degrees : ''; renderPreview(); });
+  $('#pvTunSel').addEventListener('change', e => { if (e.target.value){ pv.tuning = e.target.value; syncPvInputs(); renderPreview(); } });
+  $('#pvTun').addEventListener('input', e => { pv.tuning = e.target.value; $('#pvTunSel').value = [...$('#pvTunSel').options].some(o => o.value === pv.tuning) ? pv.tuning : ''; renderPreview(); });
+  $('#pvLabel').addEventListener('change', e => { pv.label = e.target.value; renderPreview(); });
+  $('#pvNot').addEventListener('change', e => { pv.notation = e.target.value; fillPvLists(); pv.params = {}; $('#pvParams')._sig = ''; renderPreview(); renderForm(); });
+  $('#pvSol').addEventListener('change', e => { pv.sol = e.target.value; renderPreview(); });
+  $('#pvPath').addEventListener('change', e => { pv.path = e.target.checked; renderPreview(); });
+  $('#pvGhost').addEventListener('change', e => { pv.ghost = e.target.checked; renderPreview(); });
+  $('#pvOv').addEventListener('change', e => { pv.ov = e.target.checked; renderPreview(); });
+  $('#pvOvSel').addEventListener('change', e => { pv.ovSel = e.target.value; renderPreview(); });
+  $('#pvOvDeg').addEventListener('change', () => renderPreview());
+  $('#pvSticky').addEventListener('change', e => $('#pvCard').classList.toggle('sticky', e.target.checked));
+  $('#pvPath').checked = pv.path;
+}
+
+/* =====================================================================
+   LISTA DEGLI ALGORITMI
+   ===================================================================== */
+const TYPE_LABEL = {path: 'percorso', window: 'finestra', shape: 'forma', script: 'script', chain: 'catena'};
+function renderList(){
+  const ul = $('#alist'); ul.innerHTML = '';
+  doc.algorithms.forEach((a, i) => {
+    ul.append(h('li', {class: i === selIdx ? 'on' : '', onclick: () => { selIdx = i; pv.sol = 'all'; renderList(); renderForm(); renderPreview(); }},
+      h('span', {class: 'dot' + (errors.algorithms[i] ? ' bad' : ''), title: errors.algorithms[i] || 'ok'}),
+      h('span', {class: 'nm'}, a.name || a.id || '(senza nome)'), h('span', {class: 'badge'}, TYPE_LABEL[a.type] || a.type)));
+  });
+}
+function markList(){ [...$('#alist').children].forEach((li, i) => { const d = li.firstChild; d.className = 'dot' + (errors.algorithms[i] ? ' bad' : ''); d.title = errors.algorithms[i] || 'ok'; const nm = li.children[1]; const a = doc.algorithms[i]; if (a) nm.textContent = a.name || a.id || '(senza nome)'; }); }
+const slug = s => (s || 'algoritmo').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'algoritmo';
+function uniqueId(base){ let id = base, n = 2; const ids = new Set(doc.algorithms.map(a => a.id)); while (ids.has(id)) id = base + '-' + n++; return id; }
+const TEMPLATES = {
+  path: () => ({type: 'path', description: '', strings: {start: 'lowest', step: 1}, sequence: {order: 'pitch', link: 'closest', start: {$param: {label: 'Posizione (grado di partenza)'}}},
+                notesPerString: '3', length: 'strings', limits: {minKept: 0.8}, octave: {$param: true}}),
+  window: () => ({type: 'window', description: '', width: 4, stretch: 1, forms: [{name: 'Forma 1', string: 'E', fret: 1}]}),
+  shape: () => ({type: 'shape', description: '', anchor: {string: 6, degree: 'F'}, onlyInStructure: true, frets: [[0, 3], [0, 2], [0, 2], [0, 2], [0, 3], [0, 3]]}),
+  script: () => ({type: 'script', description: '', code: ['const out = [];', 'for (let s = 0; s < ctx.n; s++)', '  for (let f = 0; f <= ctx.frets; f++)', '    if (ctx.board[s][f].deg >= 0) out.push({s, f});', 'return {groups: [{notes: out}]};']})
+};
+function newAlgo(type){
+  const name = 'Nuovo ' + (TYPE_LABEL[type] || type);
+  const a = Object.assign({id: uniqueId(slug(name)), name}, TEMPLATES[type]());
+  doc.algorithms.push(a); selIdx = doc.algorithms.length - 1; renderList(); renderForm(); changed();
+}
+function bindList(){
+  $('#btnNew').addEventListener('click', () => newAlgo($('#newType').value));
+  $('#btnDup').addEventListener('click', () => { const a = curAlgoSpec(); if (!a) return; const c = clone(a); c.name = (a.name || a.id) + ' (copia)'; c.id = uniqueId(a.id + '-copia'); doc.algorithms.splice(selIdx + 1, 0, c); selIdx++; renderList(); renderForm(); changed(); });
+  $('#btnDel').addEventListener('click', () => { const a = curAlgoSpec(); if (!a || !confirm('Eliminare "' + (a.name || a.id) + '"?')) return; doc.algorithms.splice(selIdx, 1); selIdx = Math.max(0, selIdx - 1); renderList(); renderForm(); changed(); });
+  $('#btnUp').addEventListener('click', () => move(-1)); $('#btnDown').addEventListener('click', () => move(1));
+}
+function move(d){ const j = selIdx + d; if (j < 0 || j >= doc.algorithms.length) return; [doc.algorithms[selIdx], doc.algorithms[j]] = [doc.algorithms[j], doc.algorithms[selIdx]]; selIdx = j; renderList(); changed(); }
+
+/* =====================================================================
+   FORM DELL'ALGORITMO
+   ===================================================================== */
+let rawBox = null;
+function refreshRaw(){ if (rawBox && document.activeElement !== rawBox && curAlgoSpec()) rawBox.value = specText({algorithms: [curAlgoSpec()]}).replace(/^[\s\S]*?"algorithms": \[\n/, '').replace(/\n  \]\n\}\n$/, '').replace(/^ {4}/gm, ''); }
+function renderForm(){
+  const box = $('#aform'); box.innerHTML = '';
+  const a = curAlgoSpec(); if (!a){ box.append(h('div', {class: 'card'}, 'Nessun algoritmo. Creane uno con ＋ Nuovo.')); return; }
+  const err = errors.algorithms[selIdx];
+  box.append(h('div', {class: 'card'},
+    err ? h('div', {class: 'msg bad'}, '⚠ ' + err) : null,
+    sect('Identità',
+      h('div', {class: 'row'},
+        fld('Nome nel menu', txt(a.name, v => { a.name = v; changed({keepRaw: false}); }, {style: 'width:340px'})),
+        fld('id (chiave interna)', txt(a.id, v => { a.id = v.trim(); changed(); }, {style: 'width:170px', class: 'mono'}), 'cambiarlo azzera le modifiche locali degli utenti su questo algoritmo')),
+      fld('Descrizione mostrata sotto il menu', (() => { const t = h('textarea', {rows: 3}); t.value = a.description || ''; t.addEventListener('input', () => { a.description = t.value; changed(); }); return t; })()),
+      h('div', {class: 'row'}, fld('Tipo', sel([['path', 'Percorso (path)'], ['window', 'Finestra (window)'], ['shape', 'Forma disegnata (shape)'], ['script', 'Script']], a.type === 'chain' ? 'path' : a.type, v => changeType(a, v))),
+        h('span', {class: 'help', style: 'padding-bottom:10px'}, a.type === 'chain' ? 'Tipo "catena" (vecchio formato): scegli "Percorso" per modificarlo con i nuovi vincoli.' : ''))),
+    appliesSection(a),
+    a.type === 'path' ? pathSection(a) : a.type === 'window' ? windowSection(a) : a.type === 'shape' ? shapeSection(a) : a.type === 'script' ? scriptSection(a) : h('div', {class: 'msg bad'}, 'Tipo non modificabile da qui: usa il JSON avanzato.'),
+    rawSection()));
+}
+function changeType(a, t){
+  if (t === a.type) return;
+  if (!confirm('Cambiare tipo azzera i campi specifici del tipo attuale. Continuare?')) { renderForm(); return; }
+  const keep = {id: a.id, name: a.name, description: a.description, appliesTo: a.appliesTo};
+  Object.keys(a).forEach(k => delete a[k]); Object.assign(a, keep, TEMPLATES[t]());
+  if (!a.appliesTo) delete a.appliesTo;
+  renderList(); renderForm(); changed();
+}
+function appliesSection(a){
+  const ap = a.appliesTo || {};
+  const upd = () => { const o = a.appliesTo || {}; Object.keys(o).forEach(k => { if (o[k] == null || (Array.isArray(o[k]) && !o[k].length)) delete o[k]; }); if (Object.keys(o).length) a.appliesTo = o; else delete a.appliesTo; changed(); };
+  const set = (k, v) => { a.appliesTo = a.appliesTo || {}; a.appliesTo[k] = v; upd(); };
+  const kinds = new Set(ap.kinds || []);
+  const kc = (k, l) => check(l, kinds.has(k), on => { const s = new Set((a.appliesTo || {}).kinds || []); on ? s.add(k) : s.delete(k); set('kinds', [...s]); });
+  return sect('Si applica a (l\'algoritmo compare nel menu solo se la struttura rispetta queste condizioni)',
+    h('div', {class: 'row'}, h('div', {}, h('span', {class: 'help'}, 'Tipo di struttura (nessuna spunta = tutte)'), h('div', {}, kc('scale', 'Scale'), kc('arpeggio', 'Arpeggi'))),
+      fld('Note minime', num(ap.minNotes, v => set('minNotes', v), {min: 1, max: 12})),
+      fld('Note massime', num(ap.maxNotes, v => set('maxNotes', v), {min: 1, max: 12})),
+      fld('Esattamente', num(ap.exactNotes, v => set('exactNotes', v), {min: 1, max: 12}))));
+}
+
+/* ---------- vincoli del percorso (path) ---------- */
+function constraintRow(a, d){
+  const box = h('div', {class: 'crow'});
+  const render = () => {
+    box.innerHTML = '';
+    const cur = getP(a, d.path), isP = isParam(cur);
+    const lit = isP ? (cur.$param && typeof cur.$param === 'object' ? cur.$param.default : undefined) : cur;
+    const setLit = v => {
+      const c = getP(a, d.path);
+      if (isParam(c)){ if (typeof c.$param !== 'object' || c.$param === null) c.$param = {}; if (v === undefined) delete c.$param.default; else c.$param.default = v; }
+      else if (v === undefined) delP(a, d.path); else setP(a, d.path, v);
+      changed();
+    };
+    const parts = [h('div', {class: 'cctl'}, d.make(lit, setLit))];
+    if (d.param){
+      const toggle = check("L'utente la sceglie nell'app", isP, on => {
+        const c = getP(a, d.path);
+        if (on) setP(a, d.path, {$param: c === undefined ? true : {default: c}});
+        else { const dv = isParam(c) && typeof c.$param === 'object' ? c.$param.default : undefined; if (dv === undefined) delP(a, d.path); else setP(a, d.path, dv); }
+        render(); changed();
+      });
+      const extra = [];
+      if (isP){
+        const c = getP(a, d.path); const pp = () => { if (typeof c.$param !== 'object' || c.$param === null) c.$param = {}; return c.$param; };
+        extra.push(h('span', {}, 'Etichetta del controllo: ', txt(typeof c.$param === 'object' ? c.$param.label : '', v => { v ? pp().label = v : delete pp().label; changed(); }, {style: 'width:260px', placeholder: 'predefinita'})));
+        if (d.allowAll) extra.push(check('offri anche "Tutte"', !(typeof c.$param === 'object' && c.$param.allowAll === false), on => { pp().allowAll = on; changed(); }));
+      }
+      parts.push(h('div', {class: 'cpar'}, toggle, ...extra));
+    }
+    box.append(h('div', {class: 'clabel'}, d.label, d.hint ? h('small', {}, d.hint) : null), h('div', {}, ...parts));
+  };
+  render(); return box;
+}
+const optN = (from, to, fn) => Array.from({length: to - from + 1}, (_, i) => fn(from + i));
+function pathSection(a){
+  if (a.type !== 'path') return null;
+  const R = [];
+  R.push(sect('Corde',
+    constraintRow(a, {path: 'strings.start', label: 'Corda di partenza', param: true, allowAll: true, hint: 'La corda su cui suona la nota più grave del percorso.',
+      make: (v, set) => sel([['lowest', 'La più grave'], ['all', 'Qualunque: le provo tutte'], ...optN(2, 8, n => [String(n), n + 'ª più grave'])], v === undefined ? 'lowest' : v, x => set(x === 'lowest' || x === 'all' ? x : +x))}),
+    constraintRow(a, {path: 'strings.step', label: 'Salto tra le corde', param: true, hint: 'Di quante corde si sale da una nota (o gruppo) alla successiva.',
+      make: (v, set) => sel([['1', 'Corde adiacenti'], ['2', 'Salta 1 corda'], ['3', 'Salta 2 corde']], v === undefined ? 1 : v, x => set(+x))}),
+    constraintRow(a, {path: 'length', label: 'Quante note', hint: '"Finché ci sono corde": il percorso continua fino all\'ultima corda disponibile (scale). "Un ciclo": si ferma dopo aver toccato ogni grado una volta (arpeggi).',
+      make: (v, set) => { const mode = v === 'cycle' ? 'cycle' : Number.isInteger(v) ? 'n' : 'strings';
+        const wrap = h('span', {class: 'cctl'}); const n = num(Number.isInteger(v) ? v : 4, x => set(x || 1), {min: 1, max: 24, style: 'width:70px' });
+        const s = sel([['strings', 'Finché ci sono corde'], ['cycle', 'Un ciclo completo dei gradi'], ['n', 'Un numero fisso']], mode, x => { x === 'n' ? set(+n.value || 4) : set(x); n.style.display = x === 'n' ? '' : 'none'; });
+        n.style.display = mode === 'n' ? '' : 'none'; wrap.append(s, n); return wrap; }})));
+  R.push(sect('Sequenza delle note',
+    constraintRow(a, {path: 'sequence.order', label: 'Ordine dei gradi', hint: 'Per altezza: come nelle scale. Per terze: nell\'ordine in cui scrivi i gradi (tipico degli arpeggi: F 3 5 7 9).',
+      make: (v, set) => sel([['pitch', 'Per altezza (scale)'], ['stacked', 'Per terze, come scritti (arpeggi)']], v || 'pitch', x => { set(x); renderForm(); })}),
+    constraintRow(a, {path: 'sequence.start', label: 'Prima nota', param: true, allowAll: true, hint: 'Posizione 1 = parte dalla fondamentale, 2 = dal secondo grado… Con l\'ordine "per terze" è il rivolto (1 = stato fondamentale).',
+      make: (v, set) => sel([['all', 'Tutte le posizioni'], ...optN(1, 12, n => [String(n), 'Posizione / rivolto ' + n])], v === undefined ? 1 : v, x => set(x === 'all' ? 'all' : +x))}),
+    constraintRow(a, {path: 'sequence.link', label: 'Nota successiva', param: true, hint: '"La più vicina sopra": nessun grado saltato (scale, 3 note per corda). "Qualunque ottava": ammette salti di ottava (arpeggi larghi).',
+      make: (v, set) => sel([['closest', 'La più vicina sopra'], ['any', 'In qualunque ottava sopra']], v || 'closest', set)}),
+    constraintRow(a, {path: 'notesPerString', label: 'Note per corda', param: true, hint: 'Uno schema che si ripete sulle corde: "3", oppure "2 3 2 3 2 2". Con "2-3" il solutore prova sia 2 che 3 note.',
+      make: (v, set) => txt(Array.isArray(v) ? v.join(' ') : v, x => set(x), {style: 'width:200px', class: 'mono'})})));
+  R.push(sect('Limiti e ritagli',
+    constraintRow(a, {path: 'limits.maxSpan', label: 'Ampiezza massima (tasti)', param: true, hint: 'Distanza massima tra il tasto più basso e il più alto di tutta la diteggiatura. Vuoto = nessun limite.',
+      make: (v, set) => num(v, x => set(x === null ? undefined : x), {min: 1, max: 24, placeholder: 'nessuno'})}),
+    constraintRow(a, {path: 'limits.minKept', label: 'Forme tagliate dai bordi', hint: 'Quante note devono restare sul manico (capotasto e 24° tasto) perché la forma venga mostrata. 100% = solo forme complete.',
+      make: (v, set) => h('span', {class: 'cctl'}, num(Math.round((v === undefined ? 1 : v) * 100), x => set(x === null ? undefined : Math.min(1, Math.max(0.05, x / 100))), {min: 5, max: 100}), '%')}),
+    constraintRow(a, {path: 'limits.maxSolutions', label: 'Numero massimo di soluzioni', hint: 'Freno di sicurezza quando le combinazioni sono moltissime.',
+      make: (v, set) => num(v === undefined ? 80 : v, x => set(x === null ? undefined : x), {min: 1, max: 500})}),
+    constraintRow(a, {path: 'octave', label: 'Ottava sul manico', param: true, hint: 'Se lo stesso percorso compare in più ottave: tutte, solo la più grave o solo la più acuta.',
+      make: (v, set) => sel([['all', 'Tutte'], ['low', 'Più grave'], ['high', 'Più acuta']], v || 'all', set)})));
+  return h('div', {}, ...R);
+}
+
+function rulesBox(f, redraw){
+  const box = h('div', {style: 'border-left:2px solid var(--line);padding-left:10px'});
+  const rules = f.rules || [];
+  const tidy = () => { if (f.rules && !f.rules.length) delete f.rules; };
+  box.append(h('div', {class: 'help'}, 'Regole di questa forma: ', rules.length ? '' : 'nessuna (tutte le note della struttura nella finestra). '));
+  rules.forEach((r, i) => {
+    const mode = r.only !== undefined ? 'only' : r.add !== undefined ? 'add' : 'exclude';
+    const setMode = m => { const v = r[mode]; delete r.only; delete r.exclude; delete r.add; r[m] = v || ''; redraw(); changed(); };
+    box.append(h('div', {class: 'row', style: 'margin:3px 0;align-items:center'},
+      'Sulla corda (1 = la più acuta)', txt(r.string, v => { r.string = /^\d+$/.test(v) ? +v : v; changed(); }, {list: 'strOptions', style: 'width:60px'}),
+      sel([['exclude', 'escludi i gradi'], ['only', 'tieni solo i gradi'], ['add', 'AGGIUNGI i gradi (anche fuori finestra)']], mode, setMode),
+      txt(r[mode], v => { r[mode] = v; changed(); }, {style: 'width:110px', placeholder: 'es. 7  oppure  b7 3'}),
+      ' solo per la scala madre', txt(r.scale || '', v => { v ? r.scale = v : delete r.scale; changed(); }, {style: 'width:150px', placeholder: 'tutte', title: 'es. Minore armonica'}),
+      ' e/o tasti da', num(r.from, v => { v === null ? delete r.from : r.from = v; changed(); }, {style: 'width:60px', placeholder: '–'}),
+      'a', num(r.to, v => { v === null ? delete r.to : r.to = v; changed(); }, {style: 'width:60px', placeholder: '–'}), h('span', {class: 'help'}, '(rispetto alla fondamentale; per "aggiungi" è dove cercare, vuoto = 2 tasti oltre la finestra)'),
+      h('button', {class: 'mini', onclick: () => { f.rules.splice(i, 1); tidy(); redraw(); changed(); }}, '✕')));
+  });
+  box.append(h('button', {class: 'mini', onclick: () => { (f.rules = f.rules || []).push({string: 2, exclude: '7'}); redraw(); changed(); }}, '＋ regola'));
+  return box;
+}
+
+/* ---------- finestra (window) ---------- */
+function windowSection(a){
+  if (!Array.isArray(a.forms)) a.forms = [];
+  const ex = Object.assign({octave: true, width: true, stretch: true}, a.expose || {});
+  const setEx = (k, v) => { a.expose = Object.assign({octave: true, width: true, stretch: true}, a.expose || {}); a.expose[k] = v; if (a.expose.octave && a.expose.width && a.expose.stretch) delete a.expose; changed(); };
+  const dl = h('datalist', {id: 'strOptions'}, ['E', 'A', 'D', 'G', 'B', '1', '2', '3', '4', '5', '6', '7', '8'].map(v => h('option', {value: v})));
+  const tb = h('table', {class: 't'});
+  const draw = () => {
+    tb.innerHTML = '';
+    tb.append(h('tr', {}, ['Nome della forma', 'Corda di riferimento', 'Fondamentale al tasto…', 'Grado (facoltativo)', ''].map(t => h('th', {}, t))));
+    a.forms.forEach((f, i) => { tb.append(h('tr', {},
+      h('td', {}, txt(f.name, v => { f.name = v; changed(); })),
+      h('td', {}, txt(f.string, v => { f.string = /^\d+$/.test(v) ? +v : v; changed(); }, {list: 'strOptions', style: 'width:110px'})),
+      h('td', {}, num(f.fret, v => { f.fret = v === null ? 0 : v; changed(); }, {min: 0, max: 12, style: 'width:70px'})),
+      h('td', {}, txt(f.degree || '', v => { v ? f.degree = v : delete f.degree; changed(); }, {style: 'width:80px', placeholder: 'F'})),
+      h('td', {style: 'white-space:nowrap'},
+        h('button', {class: 'mini', onclick: () => { if (i > 0){ [a.forms[i - 1], a.forms[i]] = [a.forms[i], a.forms[i - 1]]; draw(); changed(); } }}, '↑'), ' ',
+        h('button', {class: 'mini', onclick: () => { if (i < a.forms.length - 1){ [a.forms[i + 1], a.forms[i]] = [a.forms[i], a.forms[i + 1]]; draw(); changed(); } }}, '↓'), ' ',
+        h('button', {class: 'mini', onclick: () => { a.forms.splice(i, 1); draw(); changed(); }}, '✕'))));
+      tb.append(h('tr', {}, h('td', {colspan: 5, style: 'padding:0 0 10px 18px'}, rulesBox(f, draw)))); });
+  };
+  draw();
+  return h('div', {},
+    sect('Forme (ognuna è una finestra di tasti ancorata alla fondamentale)',
+      h('p', {class: 'help'}, 'La finestra va dal tasto (fondamentale − "fondamentale al tasto") fino a (fondamentale − "fondamentale al tasto" + ampiezza). Esempio: "fondamentale al tasto 1" = un tasto indietro ammesso; con ampiezza 4 arriva fino a +3 avanti. La corda di riferimento può essere una nota (E, A, D… = prima corda accordata su quella nota) o un numero (1 = la corda PIÙ ACUTA, 6 = la più grave su una sei corde).'),
+      dl, tb, h('button', {class: 'mini', onclick: () => { a.forms.push({name: 'Forma ' + (a.forms.length + 1), string: 'E', fret: 1}); draw(); changed(); }}, '＋ Aggiungi forma')),
+    sect('Regole della finestra',
+      h('div', {class: 'row'},
+        fld('Ampiezza (tasti oltre il primo)', num(a.width, v => { a.width = v || 4; changed(); }, {min: 2, max: 12})),
+        fld('Estensione ammessa oltre la finestra', num(a.stretch, v => { a.stretch = v === null ? 0 : v; changed(); }, {min: 0, max: 3}), 'solo per le corde con poche note; 0 = mai'),
+        fld('Modi con forme della scala madre da (note)', num(a.parentMinNotes, v => { v === null ? delete a.parentMinNotes : a.parentMinNotes = v; changed(); }, {min: 1, max: 12, placeholder: '6'}), 'sotto questo numero di note (pentatoniche) le forme sono quelle della scala stessa'),
+        fld('Note minime per corda', num(a.minPerString, v => { v === null ? delete a.minPerString : a.minPerString = v; changed(); }, {min: 1, max: 6, placeholder: 'auto'}), 'vuoto = 2 per le scale, 1 per gli arpeggi')),
+      h('div', {}, h('span', {class: 'help'}, "Controlli che l'utente può cambiare nell'app: "), check('ottava', ex.octave, v => setEx('octave', v)), check('ampiezza', ex.width, v => setEx('width', v)), check('estensione', ex.stretch, v => setEx('stretch', v)))));
+}
+
+/* ---------- forma disegnata (shape) ---------- */
+const OFFS = Array.from({length: 17}, (_, i) => i - 6);
+function shapeSection(a){
+  if (!Array.isArray(a.frets)) a.frets = [];
+  if (!a.anchor || typeof a.anchor !== 'object') a.anchor = {string: 6, degree: 'F'};
+  const gridBox = h('div', {style: 'overflow-x:auto'});
+  const tun = () => { const t = FE.parseTuning(pv.tuning); return t.midis || [40, 45, 50, 55, 59, 64]; };
+  const anchorRow = () => { try { const ctx = FE.buildContext(tun(), 'C', FE.finalizeStructure(FE.parseStructure('F 2 3 4 5 6 7').degrees)); return ctx.stringIndex(a.anchor.string === undefined ? 6 : a.anchor.string); } catch(e){ return 0; } };
+  const draw = () => {
+    gridBox.innerHTML = '';
+    const n = Math.max(a.frets.length, 4);
+    while (a.frets.length < n) a.frets.push([]);
+    const t = tun(), ar = anchorRow();
+    const tb = h('table', {class: 'grid'});
+    tb.append(h('tr', {}, h('th', {}), OFFS.map(o => h('th', {}, o > 0 ? '+' + o : String(o)))));
+    for (let s = n - 1; s >= 0; s--){
+      const arr = [].concat(a.frets[s] || []);
+      tb.append(h('tr', {}, h('td', {class: 'rl'}, `${t.length - s} · ${s < t.length ? FE.midiName(t[s], pv.notation) : ''}`),
+        OFFS.map(o => { const on = arr.includes(o);
+          const td = h('td', {class: 'cell' + (on ? ' on' : '') + (s === ar && o === 0 ? ' anch' : ''), title: `corda ${s + 1}, ${o >= 0 ? '+' : ''}${o} tasti dalla radice`,
+            onclick: () => { const cur = [].concat(a.frets[s] || []); const k = cur.indexOf(o); if (k >= 0) cur.splice(k, 1); else cur.push(o); cur.sort((x, y) => x - y); a.frets[s] = cur; draw(); changed(); }}, o === 0 ? '●' : '');
+          return td; })));
+    }
+    gridBox.append(tb);
+  };
+  draw();
+  return h('div', {},
+    sect('Ancoraggio',
+      h('div', {class: 'row'},
+        fld('Corda dell\'ancora', txt(a.anchor.string, v => { a.anchor.string = /^\d+$/.test(v) ? +v : v; draw(); changed(); }, {style: 'width:90px', list: 'strOptions2'}), 'nota (E, A…) o numero (1 = la più acuta)'),
+        fld('Grado dell\'ancora', txt(a.anchor.degree || 'F', v => { a.anchor.degree = v || 'F'; changed(); }, {style: 'width:80px'})),
+        h('div', {style: 'padding-bottom:10px'}, check('mostra solo note della struttura', a.onlyInStructure !== false, v => { a.onlyInStructure = v; changed(); }))),
+      h('datalist', {id: 'strOptions2'}, ['E', 'A', 'D', 'G', 'B', '1', '2', '3', '4', '5', '6'].map(v => h('option', {value: v})))),
+    sect('Disegna la forma',
+      h('p', {class: 'help'}, 'Clicca le celle: righe = corde (la più grave in basso), colonne = tasti rispetto al tasto dell\'ancora (cerchio rosso = l\'ancora stessa). La forma viene riproposta in ogni punto del manico in cui il grado d\'ancoraggio compare.'),
+      h('div', {class: 'row'}, fld('Corde nella forma', sel(optN(4, 8, n => [String(n), String(n)]), Math.max(a.frets.length, 4), v => { const n = +v; a.frets = a.frets.slice(0, n); while (a.frets.length < n) a.frets.push([]); draw(); changed(); }, {style: 'width:70px'}))),
+      gridBox));
+}
+
+/* ---------- script ---------- */
+function scriptSection(a){
+  const mk = (key, rows) => { const t = h('textarea', {rows, spellcheck: 'false'}); t.value = Array.isArray(a[key]) ? a[key].join('\n') : (a[key] || ''); t.addEventListener('input', () => { if (t.value.trim() === '' && key === 'paramsCode') delete a[key]; else a[key] = t.value.split('\n'); changed(); }); return t; };
+  const hasP = a.paramsCode !== undefined;
+  const pBox = h('div', {}); const drawP = () => { pBox.innerHTML = ''; if (a.paramsCode !== undefined) pBox.append(h('p', {class: 'help'}, 'Corpo di una funzione (ctx, H) che restituisce la lista dei parametri.'), mk('paramsCode', 8)); };
+  drawP();
+  return h('div', {},
+    sect('Codice',
+      h('p', {class: 'help'}, 'Corpo di una funzione (ctx, params, H). Deve restituire {groups:[{name, notes:[{s,f}]}], info, message} oppure direttamente una lista di note. Errori di sintassi o di esecuzione compaiono sopra, nell\'anteprima.'),
+      mk('code', 16), h('div', {style: 'margin-top:8px'}, check('Parametri dinamici (paramsCode)', hasP, on => { if (on) a.paramsCode = ['return [];']; else delete a.paramsCode; drawP(); changed(); })), pBox,
+      h('details', {}, h('summary', {}, 'Cosa posso usare'),
+        h('div', {class: 'help'}, h('code', {}, 'ctx.n'), ' corde · ', h('code', {}, 'ctx.frets'), ' (24) · ', h('code', {}, 'ctx.tuning'), ' altezze MIDI dal grave · ', h('code', {}, 'ctx.structure.sorted / .degrees / .size'), ' · ',
+          h('code', {}, 'ctx.board[s][f] = {pitch, pc, deg}'), ' (deg = indice del grado, −1 se fuori struttura) · ', h('code', {}, 'ctx.degOfPitch(p)'), ' · ', h('code', {}, 'ctx.nextPitch(p)'), ' · ',
+          h('code', {}, 'ctx.stringIndex("E")'), ' · ', h('code', {}, 'ctx.window(lo, hi)'), ' · ', h('code', {}, 'ctx.chain("3", posizione, "all")'), ' · ', h('code', {}, 'H.degText(d) H.noteName(d) H.midiName(m) H.plural(n,"uno","molti")')))));
+}
+
+/* ---------- JSON avanzato ---------- */
+function rawSection(){
+  const t = h('textarea', {rows: 14, spellcheck: 'false'}); rawBox = t;
+  const msg = h('div', {class: 'msg'});
+  refreshRaw();
+  t.addEventListener('input', () => {
+    try { const o = JSON.parse(t.value); if (!o || typeof o !== 'object' || Array.isArray(o)) throw new Error('deve essere un oggetto'); doc.algorithms[selIdx] = o; t.classList.remove('bad'); msg.className = 'msg ok'; msg.textContent = 'Applicato.'; changed({keepRaw: true}); markList(); }
+    catch(e){ t.classList.add('bad'); msg.className = 'msg bad'; msg.textContent = 'JSON non valido: ' + e.message; }
+  });
+  t.addEventListener('blur', () => { if (!t.classList.contains('bad')){ renderForm(); } });
+  return h('details', {}, h('summary', {}, 'JSON avanzato di questo algoritmo (per campi non coperti dal modulo)'), t, msg);
+}
+
+/* =====================================================================
+   SCALE, ARPEGGI, ACCORDATURE
+   ===================================================================== */
+function structTable(kind, key, container){
+  const list = doc[key]; container.innerHTML = '';
+  const groups = [...new Set(doc.scales.concat(doc.arpeggios).map(s => s.group).filter(Boolean))];
+  const dl = h('datalist', {id: 'groups-' + key}, groups.map(g => h('option', {value: g})));
+  const tb = h('table', {class: 't'});
+  tb.append(h('tr', {}, ['', 'Gruppo', 'Nome', 'Gradi', 'Note in DO', kind === 'scale' ? 'Gradi aggiunti' : '', ''].map(t => h('th', {}, t))));
+  const root = FE.parseRoot('C');
+  list.forEach((it, i) => {
+    const notes = h('td', {class: 'mono help'});
+    const mark = h('td', {style: 'width:18px'});
+    const refresh = () => {
+      const p = FE.parseStructure(it.degrees || '');
+      const ok = p.degrees.length && !p.errors.length;
+      mark.innerHTML = ok ? '<span class="ok-dot">●</span>' : '<span class="bad-dot">●</span>';
+      notes.textContent = ok ? FE.finalizeStructure(p.degrees).sorted.map(d => FE.noteName(root, d, pv.notation)).join(' ') : (p.errors.length ? 'non riconosciuti: ' + p.errors.join(' ') : '');
+    };
+    refresh();
+    const degInput = txt(it.degrees, v => { it.degrees = v; refresh(); changed(); }, {class: 'mono'});
+    tb.append(h('tr', {'data-i': i},
+      mark,
+      h('td', {}, txt(it.group, v => { it.group = v; changed(); }, {list: 'groups-' + key, style: 'width:170px'})),
+      h('td', {}, txt(it.name, v => { it.name = v; changed(); })),
+      h('td', {}, degInput), notes,
+      h('td', {style: 'text-align:center'}, kind === 'scale' ? check('', it.extras, v => { v ? it.extras = true : delete it.extras; changed(); }) : null),
+      h('td', {style: 'white-space:nowrap'},
+        h('button', {class: 'mini', title: 'Usa nell\'anteprima', onclick: () => { pv.degrees = it.degrees; syncPvInputs(); renderPreview(); window.scrollTo({top: 0, behavior: 'smooth'}); }}, '▶'), ' ',
+        h('button', {class: 'mini', onclick: () => { if (i > 0){ [list[i - 1], list[i]] = [list[i], list[i - 1]]; structTable(kind, key, container); changed(); } }}, '↑'), ' ',
+        h('button', {class: 'mini', onclick: () => { if (i < list.length - 1){ [list[i + 1], list[i]] = [list[i], list[i + 1]]; structTable(kind, key, container); changed(); } }}, '↓'), ' ',
+        h('button', {class: 'mini', onclick: () => { list.splice(i, 1); structTable(kind, key, container); changed(); }}, '✕'))));
+  });
+  container.append(dl, tb, h('button', {class: 'mini', style: 'margin-top:8px', onclick: () => { list.push({group: (list[list.length - 1] || {}).group || 'Nuovo gruppo', name: 'Nuova', degrees: 'F 3 5'}); structTable(kind, key, container); changed(); }}, '＋ Aggiungi'));
+}
+function renderStructTables(){ structTable('scale', 'scales', $('#tblScales')); structTable('arpeggio', 'arpeggios', $('#tblArps')); }
+function markTables(){ fillPvListsKeep(); }
+function fillPvListsKeep(){ const keep = {deg: pv.degrees, tun: pv.tuning}; fillPvLists(); pv.degrees = keep.deg; pv.tuning = keep.tun; syncPvInputs(); }
+function renderTunTable(){
+  const c = $('#tblTun'); c.innerHTML = '';
+  const tb = h('table', {class: 't'});
+  tb.append(h('tr', {}, ['', 'Nome', 'Note (dalla corda più grave)', 'Corde', ''].map(t => h('th', {}, t))));
+  doc.tunings.forEach((it, i) => {
+    const cnt = h('td', {class: 'help'}), mark = h('td', {style: 'width:18px'});
+    const refresh = () => { const r = FE.parseTuning(it.notes || ''); mark.innerHTML = r.error ? '<span class="bad-dot" title="' + FE.esc(r.error) + '">●</span>' : '<span class="ok-dot">●</span>'; cnt.textContent = r.error ? r.error : String(r.midis.length); };
+    refresh();
+    tb.append(h('tr', {},
+      mark, h('td', {}, txt(it.name, v => { it.name = v; changed(); })),
+      h('td', {}, txt(it.notes, v => { it.notes = v; refresh(); changed(); }, {class: 'mono'})), cnt,
+      h('td', {style: 'white-space:nowrap'},
+        h('button', {class: 'mini', onclick: () => { pv.tuning = it.notes; syncPvInputs(); renderPreview(); window.scrollTo({top: 0, behavior: 'smooth'}); }}, '▶'), ' ',
+        h('button', {class: 'mini', onclick: () => { if (i > 0){ [doc.tunings[i - 1], doc.tunings[i]] = [doc.tunings[i], doc.tunings[i - 1]]; renderTunTable(); changed(); } }}, '↑'), ' ',
+        h('button', {class: 'mini', onclick: () => { if (i < doc.tunings.length - 1){ [doc.tunings[i + 1], doc.tunings[i]] = [doc.tunings[i], doc.tunings[i + 1]]; renderTunTable(); changed(); } }}, '↓'), ' ',
+        h('button', {class: 'mini', onclick: () => { doc.tunings.splice(i, 1); renderTunTable(); changed(); }}, '✕'))));
+  });
+  c.append(tb, h('button', {class: 'mini', style: 'margin-top:8px', onclick: () => { doc.tunings.push({id: 'acc' + (doc.tunings.length + 1), name: 'Nuova accordatura', notes: 'E2 A2 D3 G3 B3 E4'}); renderTunTable(); changed(); }}, '＋ Aggiungi'));
+}
+
+const MOVES = [['none','nessuno'],['below1','sotto 1 corda'],['below2','sotto 2 corde'],['above1','sopra 1 corda'],['above2','sopra 2 corde'],['next','forma successiva'],['prev','forma precedente']];
+function renderPatTable(){
+  const c = $('#tblPat'); if (!c) return; c.innerHTML = '';
+  const tb = h('table', {class: 't'});
+  tb.append(h('tr', {}, ['Nome', 'Scale', 'N', 'Ordine', 'Verso', 'Spostamento', ''].map(t => h('th', {}, t))));
+  const sel = (opts, val, fn) => { const s = h('select', {}); opts.forEach(([v, l]) => { const o = h('option', {value: v}, l); s.append(o); }); s.value = val; s.addEventListener('change', () => fn(s.value)); return s; };
+  doc.patterns.forEach((it, i) => {
+    tb.append(h('tr', {},
+      h('td', {}, txt(it.name, v => { it.name = v; changed(); })),
+      h('td', {}, txt((it.scales || []).join(', '), v => { const a = v.split(',').map(x => x.trim()).filter(Boolean); if (a.length) it.scales = a; else delete it.scales; changed(); })),
+      h('td', {style: 'width:60px'}, txt(String(it.notes || ''), v => { it.notes = parseInt(v, 10) || 4; changed(); })),
+      h('td', {}, txt(it.order || '', v => { it.order = v; changed(); }, {class: 'mono'})),
+      h('td', {}, sel([['asc', 'ascendente'], ['desc', 'discendente']], it.dir || 'asc', v => { it.dir = v; changed(); })),
+      h('td', {}, sel(MOVES, it.move || 'none', v => { it.move = v; changed(); })),
+      h('td', {style: 'white-space:nowrap'},
+        h('button', {class: 'mini', onclick: () => { if (i > 0){ [doc.patterns[i - 1], doc.patterns[i]] = [doc.patterns[i], doc.patterns[i - 1]]; renderPatTable(); changed(); } }}, '↑'), ' ',
+        h('button', {class: 'mini', onclick: () => { doc.patterns.splice(i, 1); renderPatTable(); changed(); }}, '✕'))));
+  });
+  c.append(tb, h('button', {class: 'mini', style: 'margin-top:8px', onclick: () => { doc.patterns.push({name: 'Nuovo pattern', notes: 6, order: '1 2 3 2 3 4', move: 'none', dir: 'asc'}); renderPatTable(); changed(); }}, '＋ Aggiungi'));
+}
+
+/* =====================================================================
+   AVVIO
+   ===================================================================== */
+function bindTop(){
+  $('#btnOpen').addEventListener('click', openFile);
+  $('#btnSave').addEventListener('click', saveFile);
+  $('#btnDownload').addEventListener('click', () => download(specText(doc)));
+  $('#fileOpen').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { try { loadDoc(JSON.parse(String(rd.result)), f.name, null); note('Aperto ' + f.name + '. "Salva" scarica una copia (il browser non permette di sovrascrivere da qui).', 'ok'); } catch(err){ note('File non valido: ' + err.message, 'bad'); } }; rd.readAsText(f); e.target.value = ''; });
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+    ['algos', 'structs', 'tunings', 'patterns'].forEach(k => $('#tab-' + k).style.display = (k === t.dataset.tab) ? '' : 'none');
+    $('#tab-algos').style.display = t.dataset.tab === 'algos' ? 'grid' : 'none';
+  }));
+  window.addEventListener('beforeunload', e => { if (dirty){ e.preventDefault(); e.returnValue = ''; } });
+  document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 's'){ e.preventDefault(); saveFile(); } });
+}
+function offerDraft(){
+  let d = null; try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch(e){}
+  if (!d || !d.doc) return;
+  const when = new Date(d.savedAt).toLocaleString('it-IT');
+  const b = h('div', {class: 'banner'}, `Hai una bozza non salvata del ${when}${d.name ? ' (' + d.name + ')' : ''}.`,
+    h('button', {class: 'primary', onclick: () => { loadDoc(d.doc, (d.name || 'bozza') + ' (bozza)', null); dirty = true; updateTitleBar(); b.remove(); }}, 'Riprendi la bozza'),
+    h('button', {onclick: () => { localStorage.removeItem(DRAFT_KEY); b.remove(); }}, 'Scarta'));
+  $('#notice').before(b);
+}
+bindTop(); bindList(); bindPreview();
+fetch('stock.json', {cache: 'no-cache'})
+  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  .then(d => { loadDoc(d, 'stock.json (dal sito)', null); offerDraft(); })
+  .catch(e => { loadDoc({format: 'fretlab-stock/1', scales: [], arpeggios: [], tunings: [], algorithms: []}, '(vuoto)', null); dirty = false; updateTitleBar(); note('stock.json non raggiungibile (' + e.message + '). Usa "Apri stock.json…" per caricarlo dal tuo computer.', 'bad'); offerDraft(); });
+
+window.EditorDebug = {get doc(){ return doc; }, pv, changed, get errors(){ return errors; }, setSel: i => { selIdx = i; renderList(); renderForm(); renderPreview(); }};
+})();
+</script>
+</body>
+</html>

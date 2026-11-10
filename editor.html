@@ -80,6 +80,8 @@ details summary{cursor:pointer;color:var(--accent);font-size:13px;margin:6px 0}
 </style>
 </head>
 <body>
+<script src="auth.js"></script>
+<script src="auth-gate.js"></script>
 <div class="app">
   <div class="bar">
     <h1>🎸 Editor di <span style="color:var(--accent)">stock.json</span></h1>
@@ -691,25 +693,46 @@ function renderTunTable(){
   c.append(tb, h('button', {class: 'mini', style: 'margin-top:8px', onclick: () => { doc.tunings.push({id: 'acc' + (doc.tunings.length + 1), name: 'Nuova accordatura', notes: 'E2 A2 D3 G3 B3 E4'}); renderTunTable(); changed(); }}, '＋ Aggiungi'));
 }
 
-const MOVES = [['none','nessuno'],['below1','sotto 1 corda'],['below2','sotto 2 corde'],['above1','sopra 1 corda'],['above2','sopra 2 corde'],['next','forma successiva'],['prev','forma precedente']];
+const PSEL = {
+  mode: [['user','Pattern numerico'],['asc','Ascendente'],['desc','Discendente'],['ascdesc','Asc/disc'],['descasc','Disc/asc']],
+  dir: [['asc','Ascendente'],['desc','Discendente']],
+  vMove: [['none','nessuno'],['down1','1 corda sotto'],['down2','2 corde sotto'],['up1','1 corda sopra'],['up2','2 corde sopra']],
+  hMove: [['none','nessuno'],['next','box successivo'],['prev','box precedente']],
+  end: [['stop','fermati'],['reverse','torna indietro'],['again','ripeti una volta']],
+  inv: [['no','mai'],['step','a ogni spostamento'],['turn','al ritorno/ripartenza']],
+  inner: [['h','prima i box'],['v','prima le corde']],
+  bool: [['true','sì'],['false','no']]
+};
 function renderPatTable(){
   const c = $('#tblPat'); if (!c) return; c.innerHTML = '';
-  const tb = h('table', {class: 't'});
-  tb.append(h('tr', {}, ['Nome', 'Scale', 'N', 'Ordine', 'Verso', 'Spostamento', ''].map(t => h('th', {}, t))));
-  const sel = (opts, val, fn) => { const s = h('select', {}); opts.forEach(([v, l]) => { const o = h('option', {value: v}, l); s.append(o); }); s.value = val; s.addEventListener('change', () => fn(s.value)); return s; };
+  const fld = (label, el) => h('label', {style: 'display:block;flex:1 1 150px;min-width:130px'}, h('span', {style: 'display:block;font-size:11.5px;opacity:.7'}, label), el);
+  const sel = (opts, val, fn) => { const s = h('select', {}); opts.forEach(([v, l]) => s.append(h('option', {value: v}, l))); s.value = String(val); s.addEventListener('change', () => fn(s.value)); return s; };
   doc.patterns.forEach((it, i) => {
-    tb.append(h('tr', {},
-      h('td', {}, txt(it.name, v => { it.name = v; changed(); })),
-      h('td', {}, txt((it.scales || []).join(', '), v => { const a = v.split(',').map(x => x.trim()).filter(Boolean); if (a.length) it.scales = a; else delete it.scales; changed(); })),
-      h('td', {style: 'width:60px'}, txt(String(it.notes || ''), v => { it.notes = parseInt(v, 10) || 4; changed(); })),
-      h('td', {}, txt(it.order || '', v => { it.order = v; changed(); }, {class: 'mono'})),
-      h('td', {}, sel([['asc', 'ascendente'], ['desc', 'discendente']], it.dir || 'asc', v => { it.dir = v; changed(); })),
-      h('td', {}, sel(MOVES, it.move || 'none', v => { it.move = v; changed(); })),
-      h('td', {style: 'white-space:nowrap'},
-        h('button', {class: 'mini', onclick: () => { if (i > 0){ [doc.patterns[i - 1], doc.patterns[i]] = [doc.patterns[i], doc.patterns[i - 1]]; renderPatTable(); changed(); } }}, '↑'), ' ',
-        h('button', {class: 'mini', onclick: () => { doc.patterns.splice(i, 1); renderPatTable(); changed(); }}, '✕'))));
+    const box = h('div', {style: 'border:1px solid var(--line,#3a2e25);border-radius:10px;padding:10px;margin:0 0 10px'});
+    const row1 = h('div', {style: 'display:flex;gap:8px;flex-wrap:wrap'},
+      fld('Nome', txt(it.name, v => { it.name = v; changed(); })),
+      fld('Scale (virgola; vuoto = tutte)', txt((it.scales || []).join(', '), v => { const a = v.split(',').map(x => x.trim()).filter(Boolean); if (a.length) it.scales = a; else delete it.scales; changed(); })),
+      fld('Tipo di lick', sel(PSEL.mode, it.mode || 'user', v => { it.mode = v; changed(); })));
+    const row2 = h('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:6px'},
+      fld('N note', txt(String(it.notes || ''), v => { it.notes = parseInt(v, 10) || 4; changed(); })),
+      fld('Ordine (1..N)', txt(it.order || '', v => { it.order = v; changed(); })),
+      fld('Verso', sel(PSEL.dir, it.dir || 'asc', v => { it.dir = v; changed(); })),
+      fld('Ribatti nota di inversione', sel(PSEL.bool, it.repTop !== false, v => { it.repTop = v === 'true'; changed(); })),
+      fld('Fermati dopo un\'ottava', sel(PSEL.bool, it.oct !== false, v => { it.oct = v === 'true'; changed(); })));
+    const row3 = h('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:6px'},
+      fld('Corde: spostamento', sel(PSEL.vMove, it.vMove || 'none', v => { it.vMove = v; changed(); })),
+      fld('Corde: a fine corsa', sel(PSEL.end, it.vEnd || 'stop', v => { it.vEnd = v; changed(); })),
+      fld('Corde: inverti lick', sel(PSEL.inv, it.vInv || 'no', v => { it.vInv = v; changed(); })),
+      fld('Box: spostamento', sel(PSEL.hMove, it.hMove || (it.move === 'next' ? 'next' : it.move === 'prev' ? 'prev' : 'none'), v => { it.hMove = v; delete it.move; changed(); })),
+      fld('Box: a fine corsa', sel(PSEL.end, it.hEnd || 'stop', v => { it.hEnd = v; changed(); })),
+      fld('Box: inverti lick', sel(PSEL.inv, it.hInv || 'no', v => { it.hInv = v; changed(); })),
+      fld('Se entrambi, scorri prima', sel(PSEL.inner, it.inner || 'h', v => { it.inner = v; changed(); })));
+    const row4 = h('div', {style: 'margin-top:8px'},
+      h('button', {class: 'mini', onclick: () => { if (i > 0){ [doc.patterns[i - 1], doc.patterns[i]] = [doc.patterns[i], doc.patterns[i - 1]]; renderPatTable(); changed(); } }}, '↑ Su'), ' ',
+      h('button', {class: 'mini', onclick: () => { doc.patterns.splice(i, 1); renderPatTable(); changed(); }}, '✕ Elimina'));
+    box.append(row1, row2, row3, row4); c.append(box);
   });
-  c.append(tb, h('button', {class: 'mini', style: 'margin-top:8px', onclick: () => { doc.patterns.push({name: 'Nuovo pattern', notes: 6, order: '1 2 3 2 3 4', move: 'none', dir: 'asc'}); renderPatTable(); changed(); }}, '＋ Aggiungi'));
+  c.append(h('button', {class: 'mini', onclick: () => { doc.patterns.push({name: 'Nuovo pattern', notes: 4, order: '1 2 3 4', dir: 'asc', vMove: 'none', hMove: 'none'}); renderPatTable(); changed(); }}, '＋ Aggiungi'));
 }
 
 /* =====================================================================

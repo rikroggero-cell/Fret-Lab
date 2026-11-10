@@ -18,9 +18,10 @@ const FIGS = [
 ];
 
 /* ---------- stato ---------- */
-const PDEF = {bpm:80, fig:'e', volM:70, volN:80, sub:false, count:true, loop:true, mode:'asc', start:'auto', n:6, dir:'asc', order:'1 2 3 2 3 4', move:'none', fv:null, fgi:0, title:''};
+const PDEF = {bpm:80, fig:'e', volM:70, volN:80, sub:false, count:true, loop:true, mode:'asc', start:'auto', n:6, dir:'asc', order:'1 2 3 2 3 4', vMove:'none', vEnd:'stop', vInv:'no', hMove:'none', hEnd:'stop', hInv:'no', inner:'h', oct:true, repTop:true, sLo:null, sHi:null, fv:null, fgi:0, title:''};
 let P = Object.assign({}, PDEF);
 try { Object.assign(P, JSON.parse(localStorage.getItem(PKEY) || '{}')); } catch(e){}
+migrateMove(P);
 const saveP = () => { try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch(e){} };
 let S = null;
 
@@ -33,6 +34,7 @@ function show(){
   patterns = FL.getPatterns();
   FE.settings.notation = S.notation; FE.settings.rootSym = S.rootSym;
   if (!bound){ bind(); bound = true; }
+  P.fv = null; P.fgi = 0; P.start = 'auto';   // si riparte dalla diteggiatura scelta nella pagina principale
   init(); recompute(true);
 }
 const noteLabel = (n) => {
@@ -80,52 +82,96 @@ function parseOrder(txt, N){
   return {out};
 }
 function mkEv(fi, n){ return {fi, s:n.s, f:n.f, midi:n.midi, deg:n.deg}; }
+function migrateMove(o){   // compatibilità con il vecchio campo "move"
+  if (!o.move) return;
+  const m = o.move; delete o.move;
+  if (m === 'next' || m === 'prev') o.hMove = m;
+  else if (/^(below|above)([12])$/.test(m)) o.vMove = (m.startsWith('below') ? 'down' : 'up') + m.slice(-1);
+}
+const INVMODE = {asc:'desc', desc:'asc', ascdesc:'descasc', descasc:'ascdesc'};
 function buildSequence(){
-  const ev = []; let msg = '';
   if (!F.length) return {events:[], msg:'Nessuna diteggiatura disponibile per questa scala/algoritmo.'};
-  const cur = F[FI], notes = cur.notes;
-  const asc = notes.map(n => mkEv(FI, n)), desc = asc.slice().reverse();
-  if (P.mode === 'asc') ev.push(...asc);
-  else if (P.mode === 'desc') ev.push(...desc);
-  else if (P.mode === 'ascdesc') ev.push(...asc, ...desc.slice(1));
-  else if (P.mode === 'descasc') ev.push(...desc, ...asc.slice(1));
-  else {
-    const N = Math.max(2, Math.min(24, parseInt(P.n, 10) || 2));
-    const po = parseOrder(P.order, N);
-    if (po.err) return {events:[], msg:po.err, bad:true};
-    const dirAsc = P.dir !== 'desc';
-    let fi = FI, idx;
-    const startIdx = (arr) => P.start === 'auto' || !(+P.start >= 0 && +P.start < arr.length) ? (dirAsc ? 0 : arr.length - 1) : +P.start;
-    idx = startIdx(notes);
-    const ordOf = (arr, i) => arr.slice(0, i).filter(x => x.s === arr[i].s).length;
-    let s0 = notes[idx].s, ord0 = ordOf(notes, idx);
-    for (let it = 0; it < 80; it++){
-      const arr = F[fi].notes;
-      if (dirAsc ? idx + N > arr.length : idx - N + 1 < 0){
-        if (it === 0) msg = `Dalla nota di partenza scelta non ci sono ${N} note disponibili nella diteggiatura.`;
-        break;
-      }
-      for (const k of po.out) ev.push(mkEv(fi, arr[dirAsc ? idx + k - 1 : idx - k + 1]));
-      if (P.move === 'none') break;
-      let ns = arr[idx].s, nf = fi;
-      if (/^(below|above)/.test(P.move)){
-        const k = +P.move.slice(-1); ns = s0 + (P.move.startsWith('above') ? k : -k);
-      } else {
-        const hasForm = F[fi].hasForm;
-        const cand = F.map((f, j) => j).filter(j => hasForm || F[j].lowStr === F[FI].lowStr);
-        const pos = cand.indexOf(fi); const nj = cand[pos + (P.move === 'next' ? 1 : -1)];
-        if (nj === undefined) break;
-        nf = nj; ns = s0;
-        // le diteggiature candidate devono salire/scendere davvero
-        if (P.move === 'next' ? F[nf].low <= F[fi].low : F[nf].low >= F[fi].low) break;
-      }
-      const narr = F[nf].notes, onS = narr.map((x, j) => j).filter(j => narr[j].s === ns);
-      if (!onS.length) break;
-      idx = onS[Math.min(ord0, onS.length - 1)]; fi = nf; s0 = ns;
+  const n = ctx.n, out = [], cap = 4000;
+  // --- parametri del lick ---
+  const N = Math.max(2, Math.min(24, parseInt(P.n, 10) || 2));
+  let po = null;
+  if (P.mode === 'user'){ po = parseOrder(P.order, N); if (po.err) return {events:[], msg:po.err, bad:true}; }
+  const baseAsc = P.dir !== 'desc';
+  const cur = F[FI].notes;
+  const sIdx = (P.start === 'auto' || !(+P.start >= 0 && +P.start < cur.length)) ? (baseAsc ? 0 : cur.length - 1) : +P.start;
+  const s0 = cur[sIdx].s, ord0 = cur.slice(0, sIdx).filter(x => x.s === s0).length;
+  const lo0 = P.sLo == null ? 0 : Math.max(0, +P.sLo), hi0 = P.sHi == null ? n - 1 : Math.min(n - 1, +P.sHi);
+  const hOn = P.hMove === 'next' || P.hMove === 'prev', vOn = /^(down|up)[12]$/.test(P.vMove);
+  // --- catena dei box ---
+  let Hs = [FI];
+  if (hOn){
+    const hasForm = F[FI].hasForm, sgn = P.hMove === 'next' ? 1 : -1;
+    const cand = F.map((f, j) => j).filter(j => hasForm || F[j].lowStr === F[FI].lowStr);
+    const key = f => f.notes.map(x => x.s + ':' + x.f).join(',');
+    const seenV = new Set([F[FI].v]);
+    const shifted = F[FI].notes.map(x => x.s + ':' + (x.f + 12 * sgn)).join(',');
+    for (let p = cand.indexOf(FI) + sgn; p >= 0 && p < cand.length; p += sgn){
+      const j = cand[p], last = F[Hs[Hs.length - 1]];
+      if (sgn > 0 ? F[j].low <= last.low : F[j].low >= last.low) continue;
+      if (P.oct && (F[j].v !== null ? seenV.has(F[j].v) : key(F[j]) === shifted)) break;
+      seenV.add(F[j].v);
+      Hs.push(j);
     }
-    if (!ev.length && !msg) msg = 'Nessuna nota generata.';
   }
-  return {events: ev, msg};
+  // --- offset sulle corde ---
+  let Vs = [0];
+  if (vOn){ const k = +P.vMove.slice(-1) * (P.vMove.startsWith('down') ? -1 : 1); Vs = []; for (let v = 0; Math.abs(v) < n; v += k) Vs.push(v); }
+  let inv = false;
+  const mk = (fi, x) => ({fi, s:x.s, f:x.f, midi:x.midi, deg:x.deg});
+  function lickAt(a, b){
+    const fi = Hs[a], v = Vs[b], arr = F[fi].notes;
+    if (P.mode !== 'user'){
+      const lo = lo0 + v, hi = hi0 + v; if (lo < 0 || hi > n - 1) return null;
+      const up = arr.filter(x => x.s >= lo && x.s <= hi).map(x => mk(fi, x)); if (!up.length) return null;
+      const dn = up.slice().reverse(), m = inv ? INVMODE[P.mode] : P.mode, rt = P.repTop;
+      return m === 'asc' ? up : m === 'desc' ? dn : m === 'ascdesc' ? up.concat(rt ? dn : dn.slice(1)) : dn.concat(rt ? up : up.slice(1));
+    }
+    const asc = baseAsc !== inv, ns = s0 + v;
+    const onS = arr.map((x, j) => j).filter(j => arr[j].s === ns); if (!onS.length) return null;
+    const idx = onS[Math.min(ord0, onS.length - 1)];
+    if (asc ? idx + N > arr.length : idx - N + 1 < 0) return null;
+    return po.out.map(k => mk(fi, arr[asc ? idx + k - 1 : idx - k + 1]));
+  }
+  const push = l => { if (l) out.push(...l); };
+  const cfgH = {end:P.hEnd, inv:P.hInv}, cfgV = {end:P.vEnd, inv:P.vInv};
+  if (!hOn && !vOn){ push(lickAt(0, 0)); }
+  else if (hOn !== vOn){
+    // un solo asse
+    const cfg = hOn ? cfgH : cfgV, cnt = hOn ? Hs.length : Vs.length, at = i => hOn ? lickAt(i, 0) : lickAt(0, i);
+    const sweep = (order) => { let first = true; for (const i of order){ if (!first && cfg.inv === 'step') inv = !inv; first = false; const l = at(i); if (!l) return false; push(l); } return true; };
+    const fwd = []; for (let i = 0; i < cnt; i++) fwd.push(i);
+    let L = 0; while (L < cnt && at(L)) L++;
+    sweep(fwd.slice(0, L));
+    if (cfg.end === 'reverse' && L > 1){ if (cfg.inv === 'turn') inv = !inv; if (cfg.inv === 'step') inv = !inv; sweep(fwd.slice(0, L - 1).reverse()); }
+    else if (cfg.end === 'again'){ if (cfg.inv === 'turn' || cfg.inv === 'step') inv = !inv; let L2 = 0; while (L2 < cnt && at(L2)) L2++; sweep(fwd.slice(0, L2)); }
+  } else {
+    // due assi annidati
+    const innerH = P.inner !== 'v', ic = innerH ? cfgH : cfgV, oc = innerH ? cfgV : cfgH;
+    const NO = innerH ? Vs.length : Hs.length, NI = innerH ? Hs.length : Vs.length;
+    const pos = (o, i) => innerH ? lickAt(i, o) : lickAt(o, i);
+    const innerLen = o => { let L = 0; while (L < NI && pos(o, L)) L++; return L; };
+    let o = 0, od = 1, rev = false, againDone = false;
+    for (let guard = 0; guard < 400 && out.length < cap; guard++){
+      const L = innerLen(o); if (!L) break;
+      const order = []; for (let i = 0; i < L; i++) order.push(rev ? L - 1 - i : i);
+      order.forEach((i, k) => { if (k > 0 && ic.inv === 'step') inv = !inv; push(pos(o, i)); });
+      if (ic.end === 'reverse'){ rev = !rev; if (ic.inv === 'turn') inv = !inv; }
+      else { rev = false; if (ic.end === 'again' && ic.inv === 'turn') inv = !inv; }
+      if (oc.inv === 'step') inv = !inv;
+      const no = o + od;
+      if (no >= 0 && no < NO && innerLen(no) > 0){ o = no; continue; }
+      if (oc.end === 'reverse' && od === 1){ od = -1; if (oc.inv === 'turn') inv = !inv; o = o - 1; if (o < 0) break; continue; }
+      if (oc.end === 'again' && !againDone){ againDone = true; o = 0; od = 1; rev = false; if (oc.inv === 'turn') inv = !inv; continue; }
+      break;
+    }
+  }
+  const msg = out.length ? '' : (P.mode === 'user' ? `Dalla nota di partenza scelta non ci sono ${N} note disponibili nella diteggiatura.` : 'Nessuna nota generata con queste impostazioni.');
+  return {events: out.slice(0, cap), msg};
 }
 
 /* ---------- audio ---------- */
@@ -270,7 +316,7 @@ function setCurrent(e, k){
 /* ---------- interfaccia ---------- */
 function init(){
   $('selFig').innerHTML = FIGS.map(f => `<option value="${f.id}">${esc(f.label)}</option>`).join('');
-  $('selFig').value = P.fig; $('selMode').value = P.mode; $('selDir').value = P.dir; $('selMove').value = P.move;
+  $('selFig').value = P.fig; $('selMode').value = P.mode; $('selDir').value = P.dir; fillMoveUi();
   $('inpN').value = P.n; $('inpOrder').value = P.order; $('chkSub').checked = P.sub; $('chkCount').checked = P.count; $('chkLoop').checked = P.loop;
   $('volM').value = P.volM; $('volN').value = P.volN; $('inpTitle').value = P.title || '';
   $('rngBpm').value = P.bpm; $('inpBpm').value = P.bpm; volTxt();
@@ -287,11 +333,23 @@ function recompute(first){
   $('scaleInfo').innerHTML = `<strong style="color:var(--text)">${esc(rootLabel(S.root, S.notation))} ${esc(scaleName || 'struttura personalizzata')}</strong> · ${esc(algo.name)} · ${S.tuning.length} corde`;
   // diteggiatura iniziale
   let want = F.findIndex(f => f.v === (P.fv === null ? null : String(P.fv)) && f.gi === P.fgi);
-  if (want < 0){ const cp = S.params && S.params[algo.id]; const v = cp && selId ? String(cp[selId]) : null; want = Math.max(0, F.findIndex(f => f.v === v)); }
+  if (want < 0){ const cp = S.params && S.params[algo.id]; const v = cp && selId ? String(cp[selId]) : null; const idxs = F.map((f, j) => j).filter(j => F[j].v === v); want = idxs.length ? (cp && cp.octave === 'high' ? idxs[idxs.length - 1] : idxs[0]) : 0; }
   FI = want;
   $('selFing').innerHTML = F.map((f, i) => `<option value="${i}">${esc(fingLabel(f))}</option>`).join('');
   $('selFing').value = FI;
-  fillPresets(); fillStart(); rebuild(); drawFing(SEQ.events.length ? SEQ.events[0].fi : FI);
+  fillMoveUi(); fillPresets(); fillStart(); rebuild(); drawFing(SEQ.events.length ? SEQ.events[0].fi : FI);
+}
+function fillMoveUi(){
+  $('selVMove').value = P.vMove; $('selVEnd').value = P.vEnd; $('selVInv').value = P.vInv;
+  $('selHMove').value = P.hMove; $('selHEnd').value = P.hEnd; $('selHInv').value = P.hInv;
+  $('selInner').value = P.inner; $('chkOct').checked = !!P.oct; $('chkRepTop').checked = !!P.repTop;
+  if (ctx){
+    const opts = i => `<option value="${i}">${ctx.n - i}ª corda</option>`;
+    const list = Array.from({length: ctx.n}, (_, i) => i);
+    $('selSLo').innerHTML = list.map(opts).join(''); $('selSHi').innerHTML = list.map(opts).join('');
+    $('selSLo').value = P.sLo == null ? 0 : P.sLo; $('selSHi').value = P.sHi == null ? ctx.n - 1 : P.sHi;
+  }
+  $('runBox').style.display = P.mode === 'user' ? 'none' : '';
 }
 function fillStart(){
   if (!F[FI]) return;
@@ -306,8 +364,8 @@ function fillPresets(){
   $('fPreset').style.display = mine.length ? '' : 'none';
 }
 function applyPreset(p){
-  P.mode = 'user';
-  if (p.notes) P.n = p.notes; if (p.order) P.order = String(p.order); if (p.move) P.move = p.move; if (p.dir) P.dir = p.dir; P.start = p.start !== undefined ? p.start : 'auto';
+  P.mode = p.mode || 'user'; P.vMove = 'none'; P.hMove = 'none'; P.vEnd = P.hEnd = 'stop'; P.vInv = P.hInv = 'no';
+  if (p.notes) P.n = p.notes; if (p.order) P.order = String(p.order); migrateMove(p = Object.assign({}, p)); for (const k of ['vMove','vEnd','vInv','hMove','hEnd','hInv','inner','oct','repTop']) if (p[k] !== undefined) P[k] = p[k]; if (p.dir) P.dir = p.dir; P.start = p.start !== undefined ? p.start : 'auto';
   if (p.figure && FIGS.some(f => f.id === p.figure)) P.fig = p.figure;
   if (p.bpm) P.bpm = p.bpm;
   init(); fillStart(); rebuild();
@@ -338,9 +396,13 @@ function bind(){
   $('volN').addEventListener('input', e => { P.volN = +e.target.value; volTxt(); applyVol(); saveP(); });
   $('selFing').addEventListener('change', e => { FI = +e.target.value; P.fv = F[FI].v; P.fgi = F[FI].gi; P.start = 'auto'; saveP(); fillStart(); rebuild(); restartIfPlaying(); });
   const upd = () => { saveP(); rebuild(); restartIfPlaying(); };
-  $('selMode').addEventListener('change', e => { P.mode = e.target.value; upd(); });
+  $('selMode').addEventListener('change', e => { P.mode = e.target.value; $('runBox').style.display = P.mode === 'user' ? 'none' : ''; upd(); });
   $('selDir').addEventListener('change', e => { P.dir = e.target.value; upd(); });
-  $('selMove').addEventListener('change', e => { P.move = e.target.value; upd(); });
+  [['selVMove','vMove'],['selVEnd','vEnd'],['selVInv','vInv'],['selHMove','hMove'],['selHEnd','hEnd'],['selHInv','hInv'],['selInner','inner']].forEach(([id, k]) => $(id).addEventListener('change', e => { P[k] = e.target.value; upd(); }));
+  $('chkOct').addEventListener('change', e => { P.oct = e.target.checked; upd(); });
+  $('chkRepTop').addEventListener('change', e => { P.repTop = e.target.checked; upd(); });
+  $('selSLo').addEventListener('change', e => { P.sLo = +e.target.value; upd(); });
+  $('selSHi').addEventListener('change', e => { P.sHi = +e.target.value; upd(); });
   $('selStart').addEventListener('change', e => { P.start = e.target.value; upd(); });
   $('inpN').addEventListener('input', e => { P.n = parseInt(e.target.value, 10) || 2; upd(); });
   $('inpOrder').addEventListener('input', e => { P.order = e.target.value; upd(); });

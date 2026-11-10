@@ -131,11 +131,13 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .vol{display:grid;grid-template-columns:110px 1fr 38px;gap:8px;align-items:center;margin:6px 0}
 .vol span:last-child{color:var(--muted);font-size:12.5px;text-align:right}
 input[type=range]{accent-color:var(--accent);width:100%}
-.stage.pl{margin-top:0}
+h3.sub3{font-size:13px;color:var(--accent);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.08em}.field.mv{border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex:1 1 240px}.stage.pl{margin-top:0}
 .tabs2{display:flex;gap:6px}.tabs2 button{border-radius:999px;padding:4px 16px}.tabs2 button.on{background:var(--accent);color:#1b1208;border-color:var(--accent);font-weight:700}
 </style>
 </head>
 <body>
+<script src="auth.js"></script>
+<script src="auth-gate.js"></script>
 <noscript>Questa applicazione richiede JavaScript.</noscript>
 <div class="app">
   <header class="top">
@@ -364,16 +366,28 @@ input[type=range]{accent-color:var(--accent);width:100%}
         <label class="field"><span>Verso</span><select id="selDir"><option value="asc">Ascendente (1 = nota più grave)</option><option value="desc">Discendente (1 = nota più acuta, schema invertito)</option></select></label>
       </div>
       <label class="field"><span>Ordine di esecuzione (numeri da 1 a N, separati da spazio; si possono ripetere o saltare)</span><input type="text" id="inpOrder" placeholder="1 2 3 2 3 4"></label>
-      <label class="field"><span>Dopo il lick, la nota di partenza si sposta di…</span>
-        <select id="selMove">
-          <option value="none">Nessuno spostamento (una volta sola)</option>
-          <option value="below1">1 corda sotto (verso il grave)</option>
-          <option value="below2">2 corde sotto</option>
-          <option value="above1">1 corda sopra (verso l'acuto)</option>
-          <option value="above2">2 corde sopra</option>
-          <option value="next">Forma / posizione successiva (verso l'acuto)</option>
-          <option value="prev">Forma / posizione precedente (verso il grave)</option>
-        </select></label>
+    </div>
+    <div class="row" id="runBox">
+      <label class="field"><span>Corde coinvolte: dalla</span><select id="selSLo"></select></label>
+      <label class="field"><span>alla</span><select id="selSHi"></select></label>
+    </div>
+    <label class="check"><input type="checkbox" id="chkRepTop">Ribatti la nota di inversione (asc/disc e disc/asc)</label>
+    <h3 class="sub3">Movimenti dopo ogni lick</h3>
+    <div class="row">
+      <div class="field mv"><b>Tra le corde</b>
+        <label class="field"><span>Spostamento</span><select id="selVMove"><option value="none">Nessuno</option><option value="down1">1 corda sotto (verso il grave)</option><option value="down2">2 corde sotto</option><option value="up1">1 corda sopra (verso l'acuto)</option><option value="up2">2 corde sopra</option></select></label>
+        <label class="field"><span>Quando non entra più</span><select id="selVEnd"><option value="stop">Fermati</option><option value="reverse">Torna indietro</option><option value="again">Ripeti dall'inizio (una volta)</option></select></label>
+        <label class="field"><span>Inverti il lick</span><select id="selVInv"><option value="no">Mai</option><option value="step">A ogni spostamento</option><option value="turn">Quando torna indietro / ricomincia</option></select></label>
+      </div>
+      <div class="field mv"><b>Tra i box (diteggiature)</b>
+        <label class="field"><span>Spostamento</span><select id="selHMove"><option value="none">Nessuno</option><option value="next">Box successivo (verso l'acuto)</option><option value="prev">Box precedente (verso il grave)</option></select></label>
+        <label class="field"><span>Quando finiscono</span><select id="selHEnd"><option value="stop">Fermati</option><option value="reverse">Torna indietro</option><option value="again">Ripeti dall'inizio (una volta)</option></select></label>
+        <label class="field"><span>Inverti il lick</span><select id="selHInv"><option value="no">Mai</option><option value="step">A ogni spostamento</option><option value="turn">Quando torna indietro / ricomincia</option></select></label>
+      </div>
+    </div>
+    <div class="row">
+      <label class="field"><span>Se ci sono entrambi i movimenti, scorri prima…</span><select id="selInner"><option value="h">i box (per ogni corda)</option><option value="v">le corde (per ogni box)</option></select></label>
+      <label class="check" style="flex:1 1 220px;align-self:end"><input type="checkbox" id="chkOct">Fermati dopo un'ottava (non ripetere i box alle ottave alte)</label>
     </div>
     <div class="msg" id="seqMsg"></div>
     <div class="seqline" id="seqLine"></div>

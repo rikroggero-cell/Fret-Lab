@@ -541,7 +541,13 @@
         {
           "name": "Forma E",
           "string": "E",
-          "fret": 1
+          "fret": 1,
+          "rules": [
+            {
+              "string": 3,
+              "exclude": "b5"
+            }
+          ]
         },
         {
           "name": "Forma D",

@@ -1072,7 +1072,8 @@ fetch('stock.json', {cache: 'no-cache'})
 const showView = v => {
   $('viewMain').style.display = v === 'main' ? '' : 'none'; $('viewPlayer').style.display = v === 'player' ? '' : 'none';
   $('tabMain').classList.toggle('on', v === 'main'); $('tabPlayer').classList.toggle('on', v === 'player');
-  if (v === 'player') window.Player.show(); else window.Player.hide();
+  if (!window.Player){ if (v === 'player') $('pStatus').innerHTML = '<span style="color:#ff7a7a">Il file <b>player.js</b> non è stato caricato: controlla che sia nel repository (stessa cartella di index.html) e ricarica la pagina con Ctrl+F5.</span>'; return; }
+  try { if (v === 'player') window.Player.show(); else window.Player.hide(); } catch(e){ $('pStatus').innerHTML = '<span style="color:#ff7a7a">Errore nel Player: ' + String(e.message).replace(/</g, '&lt;') + '</span>'; console.error(e); }
 };
 $('tabMain').addEventListener('click', () => showView('main')); $('tabPlayer').addEventListener('click', () => showView('player'));
 window.FretLab = {

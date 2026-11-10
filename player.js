@@ -100,7 +100,6 @@ function buildSequence(){
   const cur = F[FI].notes;
   const sIdx = (P.start === 'auto' || !(+P.start >= 0 && +P.start < cur.length)) ? (baseAsc ? 0 : cur.length - 1) : +P.start;
   const s0 = cur[sIdx].s, ord0 = cur.slice(0, sIdx).filter(x => x.s === s0).length;
-  const lo0 = P.sLo == null ? 0 : Math.max(0, +P.sLo), hi0 = P.sHi == null ? n - 1 : Math.min(n - 1, +P.sHi);
   const hOn = P.hMove === 'next' || P.hMove === 'prev', vOn = /^(down|up)[12]$/.test(P.vMove);
   // --- catena dei box ---
   let Hs = [FI];
@@ -124,18 +123,23 @@ function buildSequence(){
   let inv = false;
   const mk = (fi, x) => ({fi, s:x.s, f:x.f, midi:x.midi, deg:x.deg});
   function lickAt(a, b){
-    const fi = Hs[a], v = Vs[b], arr = F[fi].notes;
+    const fi = Hs[a], arr = F[fi].notes, v = Vs[b];
+    let sMin = n, sMax = -1; for (const x of arr){ if (x.s < sMin) sMin = x.s; if (x.s > sMax) sMax = x.s; }
     if (P.mode !== 'user'){
-      const lo = lo0 + v, hi = hi0 + v; if (lo < 0 || hi > n - 1) return null;
+      const lo = (P.sLo == null ? sMin : +P.sLo) + v, hi = (P.sHi == null ? sMax : +P.sHi) + v;
+      if (lo < 0 || hi > n - 1) return null;
       const up = arr.filter(x => x.s >= lo && x.s <= hi).map(x => mk(fi, x)); if (!up.length) return null;
       const dn = up.slice().reverse(), m = inv ? INVMODE[P.mode] : P.mode, rt = P.repTop;
       return m === 'asc' ? up : m === 'desc' ? dn : m === 'ascdesc' ? up.concat(rt ? dn : dn.slice(1)) : dn.concat(rt ? up : up.slice(1));
     }
-    const asc = baseAsc !== inv, ns = s0 + v;
+    // lick numerico: la finestra di note resta la stessa (stesse corde); l'inversione ne cambia solo il verso
+    const ns = s0 + v;
     const onS = arr.map((x, j) => j).filter(j => arr[j].s === ns); if (!onS.length) return null;
     const idx = onS[Math.min(ord0, onS.length - 1)];
-    if (asc ? idx + N > arr.length : idx - N + 1 < 0) return null;
-    return po.out.map(k => mk(fi, arr[asc ? idx + k - 1 : idx - k + 1]));
+    const lo = baseAsc ? idx : idx - N + 1, hi = baseAsc ? idx + N - 1 : idx;
+    if (lo < 0 || hi > arr.length - 1) return null;
+    const asc = baseAsc !== inv;
+    return po.out.map(k => mk(fi, arr[asc ? lo + k - 1 : hi - k + 1]));
   }
   const push = l => { if (l) out.push(...l); };
   const cfgH = {end:P.hEnd, inv:P.hInv}, cfgV = {end:P.vEnd, inv:P.vInv};
@@ -148,7 +152,7 @@ function buildSequence(){
     let L = 0; while (L < cnt && at(L)) L++;
     sweep(fwd.slice(0, L));
     if (cfg.end === 'reverse' && L > 1){ if (cfg.inv === 'turn') inv = !inv; if (cfg.inv === 'step') inv = !inv; sweep(fwd.slice(0, L - 1).reverse()); }
-    else if (cfg.end === 'again'){ if (cfg.inv === 'turn' || cfg.inv === 'step') inv = !inv; let L2 = 0; while (L2 < cnt && at(L2)) L2++; sweep(fwd.slice(0, L2)); }
+    else if (cfg.end === 'again'){ if (cfg.inv === 'turn' || cfg.inv === 'step') inv = !inv; sweep(vOn && cfg.inv === 'turn' ? fwd.slice(0, L).reverse() : fwd.slice(0, L)); }
   } else {
     // due assi annidati
     const innerH = P.inner !== 'v', ic = innerH ? cfgH : cfgV, oc = innerH ? cfgV : cfgH;
@@ -161,12 +165,13 @@ function buildSequence(){
       const order = []; for (let i = 0; i < L; i++) order.push(rev ? L - 1 - i : i);
       order.forEach((i, k) => { if (k > 0 && ic.inv === 'step') inv = !inv; push(pos(o, i)); });
       if (ic.end === 'reverse'){ rev = !rev; if (ic.inv === 'turn') inv = !inv; }
-      else { rev = false; if (ic.end === 'again' && ic.inv === 'turn') inv = !inv; }
+      else if (ic.end === 'again' && ic.inv === 'turn'){ inv = !inv; rev = innerH ? false : !rev; }
+      else rev = false;
       if (oc.inv === 'step') inv = !inv;
       const no = o + od;
       if (no >= 0 && no < NO && innerLen(no) > 0){ o = no; continue; }
       if (oc.end === 'reverse' && od === 1){ od = -1; if (oc.inv === 'turn') inv = !inv; o = o - 1; if (o < 0) break; continue; }
-      if (oc.end === 'again' && !againDone){ againDone = true; o = 0; od = 1; rev = false; if (oc.inv === 'turn') inv = !inv; continue; }
+      if (oc.end === 'again' && !againDone){ againDone = true; rev = false; if (oc.inv === 'turn') inv = !inv; if (innerH && oc.inv === 'turn'){ od = -1; o = Math.max(0, o - 0); } else { o = 0; od = 1; } continue; }
       break;
     }
   }

@@ -909,6 +909,17 @@
   ],
   "patterns": [
     {
+      "name": "Up/Down (Pentatonica)",
+      "notes": 12,
+      "order": "1 2 3 4 5 6 7 8 9 10 11 12 12 11 10 9 8 7 6 5 4 3 2 1",
+      "move": "next",
+      "dir": "asc",
+      "scales": [
+        "Pentatonica minore",
+        "Pentatonica maggiore"
+      ]
+    },
+    {
       "name": "4 Note",
       "notes": 4,
       "order": "1 2 3 4",

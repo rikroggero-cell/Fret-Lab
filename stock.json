@@ -3,6 +3,18 @@
   "name": "Fretboard Lab - dati di serie",
   "scales": [
     {
+      "group": "Pentatoniche e blues",
+      "name": "Pentatonica maggiore",
+      "degrees": "F 2 3 5 6",
+      "extras": true
+    },
+    {
+      "group": "Pentatoniche e blues",
+      "name": "Pentatonica minore",
+      "degrees": "F b3 4 5 b7",
+      "extras": true
+    },
+    {
       "group": "Modi della maggiore",
       "name": "Ionico (Maggiore Naturale)",
       "degrees": "F 2 3 4 5 6 7"
@@ -138,38 +150,6 @@
       "degrees": "F b2 3 #4 #5 #6 7"
     },
     {
-      "group": "Simmetriche",
-      "name": "Esatonale (toni interi)",
-      "degrees": "F 2 3 #4 #5 b7"
-    },
-    {
-      "group": "Simmetriche",
-      "name": "Diminuita tono-semitono",
-      "degrees": "F 2 b3 4 b5 b6 6 7"
-    },
-    {
-      "group": "Simmetriche",
-      "name": "Diminuita semitono-tono",
-      "degrees": "F b2 b3 3 #4 5 6 b7"
-    },
-    {
-      "group": "Simmetriche",
-      "name": "Aumentata",
-      "degrees": "F #2 3 5 #5 7"
-    },
-    {
-      "group": "Pentatoniche e blues",
-      "name": "Pentatonica maggiore",
-      "degrees": "F 2 3 5 6",
-      "extras": true
-    },
-    {
-      "group": "Pentatoniche e blues",
-      "name": "Pentatonica minore",
-      "degrees": "F b3 4 5 b7",
-      "extras": true
-    },
-    {
       "group": "Pentatoniche e blues",
       "name": "Blues minore",
       "degrees": "F b3 4 b5 5 b7",
@@ -210,6 +190,26 @@
       "name": "Egiziana (sus)",
       "degrees": "F 2 4 5 b7",
       "extras": true
+    },
+    {
+      "group": "Simmetriche",
+      "name": "Esatonale (toni interi)",
+      "degrees": "F 2 3 #4 #5 b7"
+    },
+    {
+      "group": "Simmetriche",
+      "name": "Diminuita tono-semitono",
+      "degrees": "F 2 b3 4 b5 b6 6 7"
+    },
+    {
+      "group": "Simmetriche",
+      "name": "Diminuita semitono-tono",
+      "degrees": "F b2 b3 3 #4 5 6 b7"
+    },
+    {
+      "group": "Simmetriche",
+      "name": "Aumentata",
+      "degrees": "F #2 3 5 #5 7"
     },
     {
       "group": "Bebop",
@@ -612,7 +612,7 @@
       },
       "notesPerString": {
         "$param": {
-          "default": [2, 3, 2, 3, 2, 2],
+          "default": "2 3",
           "label": "Note per corda (dalla più grave, ciclico)"
         }
       },

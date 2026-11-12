@@ -73,7 +73,7 @@ function addStructure(kind, group, name, degrees, opts){
   const parsed = parseStructure(degrees);
   if (!parsed.degrees.length || parsed.errors.length) throw new Error(`Gradi non validi in "${name}": ${degrees}`);
   const st = finalizeStructure(parsed.degrees);
-  const item = Object.assign({id: (opts && opts.idPrefix || 'b') + ':' + kind + ':' + STRUCTS.length, kind, name, degrees, group, semisKey: st.key, spell: st.spell, semiSet: new Set(st.semis), user: !!(opts && opts.user), extras: !!(opts && opts.extras)}, {});
+  const item = Object.assign({id: (opts && opts.idPrefix || 'b') + ':' + kind + ':' + STRUCTS.length, kind, name, degrees, group, semisKey: st.key, spell: st.spell, semiSet: new Set(st.semis), user: !!(opts && opts.user), extras: !!(opts && opts.extras), bend: (opts && opts.bend) || ''}, {});
   STRUCTS.push(item); return item;
 }
 function recognize(st){
@@ -83,6 +83,11 @@ function recognize(st){
   const exactIds = new Set(exact.map(e => e.item.id));
   const contained = STRUCTS.filter(it => it.kind === 'scale' && !exactIds.has(it.id) && it.semiSet.size > st.size && st.semis.every(s => it.semiSet.has(s))).slice(0, 10);
   return {exact, contained};
+}
+
+/** Scale eptatoniche (o più ampie) che contengono tutte le note della struttura, alla stessa fondamentale. */
+function containingScales(st){
+  return STRUCTS.filter(it => it.kind === 'scale' && it.semiSet.size === 7 && st.semis.every(s => it.semiSet.has(s)));
 }
 
 /* =====================================================================
@@ -437,9 +442,10 @@ function modeParent(ctx, minNotes){
 }
 
 function windowAlgo(spec){
+  let algoSelf = null;
   const forms = spec.forms;
   const ex = Object.assign({octave:true, width:true, stretch:true}, spec.expose || {});
-  return {
+  return algoSelf = {
     id: spec.id, name: spec.name, description: spec.description || '', user: spec.user,
     appliesTo: makeApplies(spec.appliesTo),
     params: () => {
@@ -452,8 +458,27 @@ function windowAlgo(spec){
     generate: (ctx0, p) => {
       const mp = spec.useParent === false ? null : modeParent(ctx0, spec.parentMinNotes);
       const ctx = mp ? mp.ctx : ctx0;
+      // Modi: le 5 forme sono quelle della scala madre, ma il NOME è quello della forma dell'accordo del modo
+      // (triade del I grado) che cade dentro ciascuna: C lidio "forma A" = la forma della sol maggiore che contiene il Do in forma A.
+      let formIdx = +p.form || 0, modeNote = '';
+      if (mp && !p._raw && spec.modeNaming !== false && forms.length > 1){
+        try {
+          const h = harmonize(ctx0, 0, 'triad'), cctx = buildContext(ctx0.tuning, h.root, h.structure);
+          const rawP = Object.assign({}, p, {octave: 'all', _raw: 1});
+          const chordG = algoSelf.generate(cctx, Object.assign({}, rawP, {form: String(formIdx)})).groups || [];
+          const csets = chordG.map(g => g.notes.map(n => n.s + ':' + n.f)).filter(c => c.length);
+          let best = -1, bestScore = -1;
+          if (csets.length) for (let j = 0; j < forms.length; j++){
+            const pg = (algoSelf.generate(ctx0, Object.assign({}, rawP, {form: String(j)})).groups || []);
+            let sc = 0;
+            for (const g of pg){ const ps = new Set(g.notes.map(n => n.s + ':' + n.f)); for (const cs of csets) sc = Math.max(sc, cs.filter(k => ps.has(k)).length / cs.length); }
+            if (sc > bestScore + 1e-9){ bestScore = sc; best = j; }
+          }
+          if (best >= 0){ modeNote = (best !== formIdx ? ` · contiene l'accordo di ${h.root} in ${forms[formIdx].name || 'forma ' + (formIdx + 1)}` : ''); formIdx = best; }
+        } catch(e){}
+      }
       const parentName = mp ? mp.name : (ctx0.structure.name || '');
-      const form = forms[+p.form || 0] || forms[0];
+      const form = forms[formIdx] || forms[0];
       const width = Math.max(2, +p.width || spec.width || 4);
       const stretch = p.stretch === undefined || p.stretch === '' ? (spec.stretch !== undefined ? spec.stretch : 1) : Math.max(0, +p.stretch);
       const s = ctx.stringIndex(form.string);
@@ -508,10 +533,25 @@ function windowAlgo(spec){
           }
           notes.push(...row);
         }
-        items.push({key: start, group: {name: `tasti ${lo}–${hi}${stretched ? ' (+' + stretched + ' est.)' : ''}`, notes, range: [Math.max(0, lo), Math.min(FRETS, hi)]}});
+        // "Linea dell'accordo": per ogni corda i gradi scelti (un numero senza alterazione, es. "3", prende ogni terza)
+        let link = null;
+        if (Array.isArray(form.link) && form.link.length){
+          link = []; const seenL = new Set();
+          for (const L of form.link){
+            const si = ctx.stringIndex(L.string); if (si < 0) continue;
+            const toks = String(L.degrees === undefined ? '' : L.degrees).split(/[\s,]+/).filter(Boolean).map(t => ({d: parseDegree(t), acc: /^[b#♭♯]/.test(t)})).filter(x => x.d);
+            for (const nn of notes){
+              if (nn.s !== si) continue;
+              const sd = ctx.structure.sorted[ctx.board[nn.s][nn.f].deg];
+              if (toks.some(t => t.acc ? mod(sd.semi, 12) === mod(t.d.semi, 12) && sd.num === t.d.num : sd.num === t.d.num) && !seenL.has(nn.s + ':' + nn.f)){ seenL.add(nn.s + ':' + nn.f); link.push({s: nn.s, f: nn.f}); }
+            }
+          }
+          link.sort((a, b) => ctx.board[a.s][a.f].pitch - ctx.board[b.s][b.f].pitch || a.s - b.s);
+        }
+        items.push({key: start, group: Object.assign({name: `tasti ${lo}–${hi}${stretched ? ' (+' + stretched + ' est.)' : ''}`, notes, range: [Math.max(0, lo), Math.min(FRETS, hi)]}, link ? {link} : {})});
       }
       const groups = pickOctave(items, p.octave).map(i => i.group);
-      return {groups, info: `${form.name || 'Forma'}${mp ? ` (della ${mp.name}, dal ${mp.degree}° grado)` : ''} · fondamentale sulla corda ${ctx.n - s}ª · ${groups.map(g => g.name).join(' · ')}`};
+      return {groups, info: `${(forms[+p.form || 0] || form).name || 'Forma'}${mp ? ` (della ${mp.name}, dal ${mp.degree}° grado${mp && formIdx !== (+p.form || 0) ? '; box della ' + (form.name || 'forma') : ''}${modeNote})` : ''} · fondamentale sulla corda ${ctx.n - s}ª · ${groups.map(g => g.name).join(' · ')}`};
     }
   };
 }
@@ -563,8 +603,10 @@ function overlayLayers(ctx, base, cfg){
     { const rec0 = recognize(chordSt); chordSt.name = rec0.exact.length ? rec0.exact[0].item.name : ''; }
     chordSt.kind = 'arpeggio'; label = rootLabel(ctx.root.name, settings.notation) + ' ' + (chordSt.name || ''); label = label.trim();
   } else {
-    const di = Math.min(Math.max(0, (+cfg.degree || 1) - 1), ctx.structure.size - 1);
-    const h = harmonize(ctx, di, 'triad');
+    let hctx = ctx;
+    if (cfg.parentDegrees){ try { const ps = finalizeStructure(parseStructure(cfg.parentDegrees).degrees); hctx = buildContext(ctx.tuning, ctx.root.name, ps); } catch(e){ hctx = ctx; } }
+    const di = Math.min(Math.max(0, (+cfg.degree || 1) - 1), hctx.structure.size - 1);
+    const h = harmonize(hctx, di, 'triad');
     chordRoot = h.root; chordSt = h.structure; label = `${fmtNote(h.root[0], h.root.length > 1 ? (h.root[1] === '#' ? h.root.length - 1 : -(h.root.length - 1)) : 0, settings.notation)}${chordSt.name ? ' ' + chordSt.name : ' (' + chordSt.spell + ')'}`;
   }
   let cctx;
@@ -579,7 +621,7 @@ function overlayLayers(ctx, base, cfg){
     let r; try { r = algo.generate(cctx, {form: o.value, octave: 'all'}); } catch(e){ return; }
     (r.groups || []).forEach(g => {
       const keys = g.notes.map(n => n.s + ':' + n.f), shared = keys.filter(k => B.has(k)).length;
-      if (shared) cands.push({idx: fi, name: o.label, notes: g.notes, keys, shared, win: g.name});
+      if (shared) cands.push({idx: fi, name: o.label, notes: g.notes, keys, shared, win: g.name, link: g.link || null});
     });
   });
   let pick;
@@ -595,9 +637,12 @@ function overlayLayers(ctx, base, cfg){
     pick = cands.filter(c => String(c.idx) === String(base.params.form));
   } else pick = cands.filter(c => c.shared >= Math.max(1, +cfg.minShared || 1));
   pick.sort((a, b) => a.idx - b.idx || a.shared - b.shared);
-  const layers = pick.map(c => ({form: c.name, idx: c.idx, color: FORM_COLORS[c.idx % FORM_COLORS.length], notes: c.notes, shared: c.shared, win: c.win}));
+  const byPitch = arr => arr.slice().sort((a, b) => cctx.board[a.s][a.f].pitch - cctx.board[b.s][b.f].pitch || a.s - b.s);
+  const lines = cfg.lines !== false;
+  const layers = pick.map(c => ({form: c.name, idx: c.idx, color: FORM_COLORS[c.idx % FORM_COLORS.length], notes: c.link && c.link.length ? c.link : c.notes, shared: c.shared, win: c.win,
+    line: lines ? (c.link && c.link.length ? c.link : byPitch(c.notes)) : null, custom: !!(c.link && c.link.length)}));
   const names = [...new Set(layers.map(l => l.form))];
-  return {layers, ctx: cctx, chord: label, ringsOnly: !!cfg.ringsOnly, info: `Accordo ${label} · ${names.length ? names.join(' · ') : 'nessuna forma tocca le note mostrate'}`};
+  return {layers, ctx: cctx, chord: label, ringsOnly: !!cfg.ringsOnly, style: cfg.style || 'halo', dim: !!cfg.dim, lines: lines, info: `Accordo ${label} · ${names.length ? names.join(' · ') : 'nessuna forma tocca le note mostrate'}`};
 }
 
 /* =====================================================================
@@ -817,13 +862,27 @@ function drawBoard(svg, ctx, result, opt){
   if (opt.overlay && opt.overlay.layers && opt.overlay.layers.length){
     const cc = opt.overlay.ctx;
     o += `<defs><filter id="halo" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="5.5"/></filter></defs>`;
-    for (const l of opt.overlay.layers) for (const nn of l.notes){
-      const c = cc.board[nn.s][nn.f]; if (!c || c.deg < 0) continue;
-      const p = pos(nn.s, nn.f), wk = nn.f === 0 ? 99 : fx(nn.f) - fx(nn.f - 1), r = Math.min(15.5, wk * 0.45, gap * 0.46);
-      o += `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="${f1(r + 7)}" fill="${l.color}" opacity=".42" filter="url(#halo)"/>`;
-      o += `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="${f1(r + 3)}" fill="none" stroke="${l.color}" stroke-width="1.2" opacity=".35"/>`;
+    const ring = opt.overlay.style === 'ring';
+    for (const l of opt.overlay.layers){
+      if (l.line && l.line.length > 1 && opt.overlay.lines !== false){
+        const pts = l.line.map(nn => { const p = pos(nn.s, nn.f); return f1(p.x) + ',' + f1(p.y); }).join(' ');
+        o += `<polyline points="${pts}" fill="none" stroke="${plain ? '#fff' : '#000'}" stroke-width="6.4" stroke-linejoin="round" stroke-linecap="round" opacity=".28"/>`;
+        o += `<polyline points="${pts}" fill="none" stroke="${l.color}" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>`;
+      }
+      for (const nn of l.notes){
+        const c = cc.board[nn.s][nn.f]; if (!c || c.deg < 0) continue;
+        const p = pos(nn.s, nn.f), wk = nn.f === 0 ? 99 : fx(nn.f) - fx(nn.f - 1), r = Math.min(15.5, wk * 0.45, gap * 0.46);
+        o += `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="${f1(r + 7)}" fill="${l.color}" opacity="${ring ? .5 : .42}" filter="url(#halo)"/>`;
+        if (ring) o += `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="${f1(r + 4.2)}" fill="none" stroke="${l.color}" stroke-width="3.6" opacity=".96"/>`;
+        else o += `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="${f1(r + 3)}" fill="none" stroke="${l.color}" stroke-width="1.2" opacity=".35"/>`;
+      }
     }
   }
+  const chordKeys = new Set();
+  if (opt.overlay && opt.overlay.dim && opt.overlay.layers) for (const l of opt.overlay.layers) for (const nn of l.notes) chordKeys.add(nn.s + ':' + nn.f);
+  // marcatore di bend (es. terza blu) deciso per scala
+  let bendPc = null;
+  if (st.bend){ try { const bd = parseDegree(st.bend); bendPc = ((bd.semi % 12) + 12) % 12; } catch(e){ bendPc = null; } }
   // pallini
   const seen = new Set();
   for (const g of groups) for (const nn of g.notes){
@@ -838,9 +897,19 @@ function drawBoard(svg, ctx, result, opt){
     else if (opt.label === 'note') txt = noteName(ctx.root, d, opt.notation);
     else if (opt.label === 'fret') txt = String(nn.f);
     const fs = txt.length <= 2 ? r * 1.0 : txt.length === 3 ? r * 0.82 : r * 0.66;
-    if (!plain) o += `<circle cx="${f1(p.x+1.2)}" cy="${f1(p.y+2)}" r="${f1(r)}" fill="rgba(0,0,0,.45)"/>`;
-    o += `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="${f1(r)}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="${plain ? 2 : 1.6}"/>`;
-    if (txt) o += `<text x="${f1(p.x)}" y="${f1(p.y)}" dy=".35em" text-anchor="middle" font-size="${f1(fs)}" font-weight="700" fill="${col.text}">${esc(txt)}</text>`;
+    let dd = '';
+    if (!plain) dd += `<circle cx="${f1(p.x+1.2)}" cy="${f1(p.y+2)}" r="${f1(r)}" fill="rgba(0,0,0,.45)"/>`;
+    dd += `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="${f1(r)}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="${plain ? 2 : 1.6}"/>`;
+    if (txt) dd += `<text x="${f1(p.x)}" y="${f1(p.y)}" dy=".35em" text-anchor="middle" font-size="${f1(fs)}" font-weight="700" fill="${col.text}">${esc(txt)}</text>`;
+    if (bendPc !== null && opt.bend !== false && ((d.semi % 12) + 12) % 12 === bendPc){
+      const bx = p.x + r * 0.55, by = p.y - r * 0.7;
+      dd += `<path d="M${f1(bx)} ${f1(by)} q${f1(r*.9)} ${f1(-r*.2)} ${f1(r*.9)} ${f1(-r*1.5)}" fill="none" stroke="${plain ? '#000' : '#fff'}" stroke-width="3.4" stroke-linecap="round" opacity=".9"/><path d="M${f1(bx)} ${f1(by)} q${f1(r*.9)} ${f1(-r*.2)} ${f1(r*.9)} ${f1(-r*1.5)}" fill="none" stroke="#e8a33d" stroke-width="1.8" stroke-linecap="round"/><path d="M${f1(bx+r*.9-3.4)} ${f1(by-r*1.5+3.6)} l3.4 -5.6 l3.4 5.6 z" fill="#e8a33d" stroke="${plain ? '#000' : '#fff'}" stroke-width=".8"/>`;
+    }
+    if (opt.avoid && opt.avoid.pcs && opt.avoid.pcs.includes(((ctx.root.pc + d.semi) % 12 + 12) % 12)){
+      const ax = p.x + r * 0.62, ay = p.y - r * 0.62;
+      dd += `<circle cx="${f1(ax)}" cy="${f1(ay)}" r="${f1(r*.5)}" fill="#d83b3b" stroke="#fff" stroke-width="1.2"/><path d="M${f1(ax-r*.22)} ${f1(ay-r*.22)} l${f1(r*.44)} ${f1(r*.44)} m0 ${f1(-r*.44)} l${f1(-r*.44)} ${f1(r*.44)}" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>`;
+    }
+    o += chordKeys.size && !chordKeys.has(key) ? `<g opacity=".4">${dd}</g>` : dd;
   }
   // gradi aggiunti
   if (opt.extras && opt.extras.length){
@@ -895,7 +964,7 @@ function applyPack(pack, o){
     if (!Array.isArray(arr)){ warnings.push(`"${what}" deve essere una lista.`); return; }
     arr.forEach((it, i) => { try { fn(it, i); count++; } catch(e){ warnings.push(`${what}[${i}]: ${e.message}`); } });
   };
-  each(pack.scales, 'scales', it => addStructure('scale', it.group || label, it.name || 'Scala', it.degrees, {user: o.user, idPrefix: prefix, extras: it.extras}));
+  each(pack.scales, 'scales', it => addStructure('scale', it.group || label, it.name || 'Scala', it.degrees, {user: o.user, idPrefix: prefix, extras: it.extras, bend: it.bend === true ? 'b3' : it.bend}));
   each(pack.arpeggios, 'arpeggios', it => addStructure('arpeggio', it.group || label, it.name || 'Arpeggio', it.degrees, {user: o.user, idPrefix: prefix}));
   each(pack.tunings, 'tunings', it => {
     const r = parseTuning(it.notes || '');
@@ -986,7 +1055,7 @@ window.FE = {
   FRETS, MARKERS, ROOTS, LETTERS, settings, mod, esc, fmtNote, rootLabel, parseRoot, parseDegree, noteName,
   parseStructure, finalizeStructure, STRUCTS, addStructure, recognize,
   PRESETS, USER_PRESETS, allPresets, defaultTuningFor, parseTuning, midiName,
-  buildContext, allAlgos, getAlgo, buildAlgoFromSpec, loadStock, loadUser, runAlgorithm, plural, degText,
-  drawBoard, overlayLayers, extraNotes, EXTRA_LABELS, harmonize, FORM_COLORS, modeParent, dotColors, degLabelShown, WOODS, ensureParams, buildParamControls, parseCountSpec, pathParamDefs
+  buildContext, allAlgos, getAlgo, buildAlgoFromSpec, registerAlgorithm, loadStock, loadUser, runAlgorithm, plural, degText,
+  drawBoard, overlayLayers, containingScales, extraNotes, EXTRA_LABELS, harmonize, FORM_COLORS, modeParent, dotColors, degLabelShown, WOODS, ensureParams, buildParamControls, parseCountSpec, pathParamDefs
 };
 })();

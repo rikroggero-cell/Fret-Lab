@@ -12,7 +12,8 @@
       "group": "Pentatoniche e blues",
       "name": "Pentatonica minore",
       "degrees": "F b3 4 5 b7",
-      "extras": true
+      "extras": true,
+      "bend": "b3"
     },
     {
       "group": "Modi della maggiore",
@@ -153,13 +154,20 @@
       "group": "Pentatoniche e blues",
       "name": "Blues minore",
       "degrees": "F b3 4 b5 5 b7",
-      "extras": true
+      "extras": true,
+      "bend": "b3"
     },
     {
       "group": "Pentatoniche e blues",
       "name": "Blues maggiore",
       "degrees": "F 2 b3 3 5 6",
       "extras": true
+    },
+    {
+      "group": "Pentatoniche e blues",
+      "name": "Dominante blues-rock (penta min + 9, b5, 6)",
+      "degrees": "F 2 b3 4 b5 5 6 b7",
+      "bend": "b3"
     },
     {
       "group": "Pentatoniche e blues",
@@ -586,7 +594,9 @@
           }
         }
       },
-      "notesPerString": [3],
+      "notesPerString": [
+        3
+      ],
       "length": "strings",
       "limits": {
         "minKept": 0.8

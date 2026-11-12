@@ -133,6 +133,13 @@ input[type=range]{accent-color:var(--accent);width:100%}
 input[type=range]{accent-color:var(--accent);width:100%}
 h3.sub3{font-size:13px;color:var(--accent);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.08em}.field.mv{border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex:1 1 240px}.stage.pl{margin-top:0}
 .tabs2{display:flex;gap:6px}.tabs2 button{border-radius:999px;padding:4px 16px}.tabs2 button.on{background:var(--accent);color:#1b1208;border-color:var(--accent);font-weight:700}
+
+body.simple .tabs2, body.simple #viewPlayer .panels > section:not(.keep), body.simple #btnAddLesson, body.simple #seqLine, body.simple #seqMsg{display:none!important}
+.lescard{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
+.lescard .num{font-weight:700;color:var(--accent);min-width:24px}
+.lescard .txt{flex:1 1 260px;min-width:0}
+.lescard input[type=text]{width:100%}
+.addles{border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -143,7 +150,7 @@ h3.sub3{font-size:13px;color:var(--accent);margin:12px 0 6px;text-transform:uppe
   <header class="top">
     <h1>🎸 Fretboard Lab</h1>
     <span class="sub">Scale, arpeggi e diteggiature sul manico · algoritmi estendibili</span>
-    <span class="tabs2"><button id="tabMain" class="on">Diteggiature</button><button id="tabPlayer">▶ Player</button></span>
+    <span class="tabs2"><button id="tabMain" class="on">Diteggiature</button><button id="tabPlayer">▶ Player</button><button id="tabLesson">📚 Lezione <span id="lessonCount"></span></button></span>
   </header>
 
   <div id="bootError" class="card" style="display:none;margin-bottom:12px;border-color:#a33"></div>
@@ -197,9 +204,23 @@ h3.sub3{font-size:13px;color:var(--accent);margin:12px 0 6px;text-transform:uppe
         <div class="chips" id="extraChips"></div>
       </div>
 
+      <div class="sub" id="cInv">
+        <label class="check subh"><input type="checkbox" id="chkInv"> Studio inverso: dall'accordo alle scale</label>
+        <div id="invBody" style="display:none">
+          <div class="row">
+            <label class="field"><span>Fondamentale</span><select id="selIvRoot"></select></label>
+            <label class="field"><span>Accordo</span><select id="selIvChord"></select></label>
+          </div>
+          <label class="check"><input type="checkbox" id="chkIvAvoid"> Segna le avoid note (✕ rossa: mezzo tono sopra una nota dell'accordo)</label>
+          <div class="help" id="ivInfo"></div>
+          <div class="chips" id="ivList" style="max-height:340px;overflow:auto"></div>
+        </div>
+      </div>
+
       <div class="sub" id="cOverlay">
-        <label class="check subh"><input type="checkbox" id="chkOv"> Aloni: triade CAGED sovrapposta</label>
+        <label class="check subh"><input type="checkbox" id="chkOv"> Triade CAGED sovrapposta</label>
         <div id="ovBody" style="display:none">
+          <label class="field" id="ovParentWrap" style="display:none"><span>Scala eptatonica di riferimento (per le triadi)</span><select id="selOvParent"></select></label>
           <label class="field"><span>Accordo</span><select id="selOvSrc"></select></label>
           <div class="row">
             <label class="field"><span>Quali forme</span>
@@ -210,6 +231,12 @@ h3.sub3{font-size:13px;color:var(--accent);margin:12px 0 6px;text-transform:uppe
               </select></label>
             <label class="field" id="ovMinWrap" style="flex:0 0 120px"><span>Note in comune</span><input type="number" id="inpOvMin" min="1" max="8"></label>
           </div>
+          <div class="row">
+            <label class="field"><span>Stile</span>
+              <select id="selOvStyle"><option value="ring">Anello colorato (ben visibile)</option><option value="halo">Alone leggero</option></select></label>
+          </div>
+          <label class="check"><input type="checkbox" id="chkOvLines"> Collega le note dell'accordo con una linea</label>
+          <label class="check"><input type="checkbox" id="chkOvDim"> Attenua le note della scala fuori dall'accordo</label>
           <div class="desc" id="ovInfo"></div>
           <div class="legend" id="ovLegend"></div>
         </div>
@@ -316,7 +343,46 @@ h3.sub3{font-size:13px;color:var(--accent);margin:12px 0 6px;text-transform:uppe
     </details>
   </section>
 </div>
+<div id="viewLesson" style="display:none">
+  <section class="card">
+    <h2>📚 Lezione</h2>
+    <div class="row" style="align-items:end">
+      <label class="field"><span>Nome della lezione</span><input type="text" id="lsName" placeholder="es. Lezione 5 – Pentatonica minore"></label>
+      <label class="field"><span>Messaggio per l'allievo (facoltativo)</span><input type="text" id="lsMsg" placeholder="es. 10 minuti al giorno, partendo da 60 bpm"></label>
+    </div>
+    <div class="help" id="lsHelp"></div>
+    <div id="lsList" style="margin-top:10px"></div>
+    <div class="row" id="lsActions" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+      <button class="primary" id="lsLink">🔗 Copia link</button>
+      <button id="lsQr">▦ Mostra QR code</button>
+      <button id="lsExport">⬇ Esporta file (.json)</button>
+      <button id="lsImport">⬆ Importa file</button>
+      <input type="file" id="lsFile" accept=".json,application/json" style="display:none">
+      <button id="lsClear" class="mini">Svuota lezione</button>
+      <button id="lsEdit" class="mini" style="display:none">Modalità insegnante</button>
+    </div>
+    <div class="msg" id="lsInfo"></div>
+  </section>
+  <div id="qrModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:50;align-items:center;justify-content:center">
+    <div class="card" style="text-align:center;max-width:94vw">
+      <h2 id="qrTitle">QR code della lezione</h2>
+      <canvas id="qrCv" style="background:#fff;max-width:86vw;height:auto"></canvas>
+      <div class="help" id="qrHint" style="max-width:420px;margin:8px auto"></div>
+      <button id="qrPng">Scarica PNG</button> <button id="qrClose" class="primary">Chiudi</button>
+    </div>
+  </div>
+</div>
 <div id="viewPlayer" style="display:none">
+<div id="simpleBar" class="card" style="display:none;margin-bottom:12px">
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <button id="sbBack" class="primary">← Lezione</button>
+    <button id="sbPrev" title="Esercizio precedente">◀</button><span id="sbPos" class="help"></span><button id="sbNext" title="Esercizio successivo">▶</button>
+    <strong id="sbTitle" style="flex:1 1 200px"></strong>
+    <button id="sbFull" class="mini">Impostazioni complete</button>
+  </div>
+  <div class="help" id="sbDesc" style="margin-top:6px"></div>
+  <div id="sbNote" style="margin-top:6px;color:var(--text)"></div>
+</div>
 <div class="stage pl">
   <div class="board-scroll"><svg id="pBoard" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Manico"></svg></div>
   <div class="status" id="pStatus"></div>
@@ -324,6 +390,7 @@ h3.sub3{font-size:13px;color:var(--accent);margin:12px 0 6px;text-transform:uppe
 
 <div class="transport">
   <button class="primary" id="btnPlay">▶ Play</button>
+  <button id="btnAddLesson" class="addles" title="Salva questo esercizio nella lezione">＋ Aggiungi alla lezione</button>
   <div class="bpm"><strong>BPM</strong><input type="range" id="rngBpm" min="30" max="260" step="1"><input type="number" id="inpBpm" min="30" max="260"></div>
   <label class="check"><input type="checkbox" id="chkCount">Battuta di attacco</label>
   <label class="check"><input type="checkbox" id="chkLoop">Loop</label>
@@ -338,7 +405,7 @@ h3.sub3{font-size:13px;color:var(--accent);margin:12px 0 6px;text-transform:uppe
     <div class="help">Scala, fondamentale, accordatura e algoritmo si scelgono nella <a href="index.html" style="color:var(--accent)">pagina principale</a>.</div>
   </section>
 
-  <section class="card">
+  <section class="card keep">
     <h2>Ritmo e suono</h2>
     <label class="field"><span>Figura ritmica (una nota per figura)</span><select id="selFig"></select></label>
     <label class="check"><input type="checkbox" id="chkSub">Click di suddivisione (tra i battiti)</label>
@@ -387,6 +454,7 @@ h3.sub3{font-size:13px;color:var(--accent);margin:12px 0 6px;text-transform:uppe
     </div>
     <div class="row">
       <label class="field"><span>Se ci sono entrambi i movimenti, scorri prima…</span><select id="selInner"><option value="h">i box (per ogni corda)</option><option value="v">le corde (per ogni box)</option></select></label>
+      <label class="field"><span>Di quanti box spostarsi in orizzontale</span><select id="selHBoxes"><option value="oct">Un'ottava (automatico)</option><option value="2">2 box</option><option value="3">3 box</option><option value="4">4 box</option><option value="5">5 box</option><option value="6">6 box</option><option value="7">7 box</option><option value="8">8 box</option><option value="9">9 box</option><option value="10">10 box</option><option value="11">11 box</option><option value="12">12 box</option></select></label>
       <label class="check" style="flex:1 1 220px;align-self:end"><input type="checkbox" id="chkOct">Fermati dopo un'ottava (non ripetere i box alle ottave alte)</label>
     </div>
     <div class="msg" id="seqMsg"></div>
@@ -411,10 +479,12 @@ h3.sub3{font-size:13px;color:var(--accent);margin:12px 0 6px;text-transform:uppe
 <script src="stock.js"></script>
 <script src="score.js"></script>
 <script src="player.js"></script>
+<script src="qrcode.js"></script>
+<script src="lesson.js"></script>
 <script>
 (() => {
 'use strict';
-const {FRETS, ROOTS, esc, rootLabel, parseRoot, noteName, parseStructure, finalizeStructure, recognize, STRUCTS, allPresets, defaultTuningFor,
+const {FRETS, ROOTS, esc, rootLabel, parseRoot, parseDegree, noteName, parseStructure, finalizeStructure, recognize, STRUCTS, allPresets, defaultTuningFor,
        parseTuning, buildContext, allAlgos, getAlgo, buildAlgoFromSpec} = FE;
 const midiNameEn = m => FE.midiName(m, 'en');
 
@@ -446,7 +516,7 @@ const EXAMPLE_PACK = {
 };
 
 const DEFAULTS = {root:'C', degrees:'F 2 3 4 5 6 7', tuning:[40,45,50,55,59,64], flipStrings:false, flipFrets:false,
-  label:'degree', notation:'en', rootSym:'F', color:'root', ghost:true, path:false, wood:'rosewood', algo:'caged', params:{}, extras:[], overlay:{on:false, src:'auto', ext:'auto', sel:'cover', min:1, rings:false}};
+  label:'degree', notation:'en', rootSym:'F', color:'root', ghost:true, path:false, wood:'rosewood', algo:'caged', params:{}, extras:[], overlay:{on:false, src:'auto', ext:'auto', sel:'cover', min:1, rings:false, style:'ring', lines:true, dim:false}, inv:{on:false, root:'C', chord:'', avoid:true}};
 const STATE_KEY = 'fretlab.state.v1', PACKS_KEY = 'fretlab.packs.v1';
 function loadState(){
   const s = JSON.parse(JSON.stringify(DEFAULTS));
@@ -457,6 +527,7 @@ function loadState(){
       if (!Array.isArray(s.tuning) || s.tuning.length < 1 || s.tuning.length > 12 || s.tuning.some(x => typeof x !== 'number')) s.tuning = DEFAULTS.tuning.slice();
       if (!ROOTS.includes(s.root)) s.root = 'C';
       s.overlay = Object.assign({}, DEFAULTS.overlay, s.overlay || {});
+      s.inv = Object.assign({}, DEFAULTS.inv, s.inv || {});
       s.extras = Array.isArray(raw && raw.extras) ? raw.extras.filter(x => Number.isInteger(x) && x > 0 && x < 12) : [];
     }
   } catch(e){}
@@ -469,7 +540,7 @@ const saveState = () => { try { localStorage.setItem(STATE_KEY, JSON.stringify(s
 const $ = id => document.getElementById(id);
 const el = {};
 ['selRoot','selLib','inpDeg','recog','noteLine','selStrings','selTuning','inpTuning','tuneMsg','chkFlipStr','chkFlipFret','selAlgo','algoDesc','algoParams','algoMain',
- 'btnPng','btnPdf','btnPdfAll','selExpBg','selExpStyle','selExpPer','expMsg','chkOv','cExtra','extraChips','ovBody','selOvSrc','selOvSel','inpOvMin','ovInfo','ovLegend','ovMinWrap','edAlgo','edText','edMsg','edApply','edRestore','edDup','edSave','edSaveAll','selLabel','selNotation','selRootSym','selColor','selWood','chkGhost','chkPath','legend','status','packText','packMsg','packList','btnPackAdd','btnPackExample','btnPackFile','filePack','btnPackExport'
+ 'btnPng','btnPdf','btnPdfAll','selExpBg','selExpStyle','selExpPer','expMsg','chkOv','cExtra','extraChips','ovBody','selOvSrc','selOvSel','inpOvMin','selOvStyle','chkOvLines','chkOvDim','selOvParent','ovParentWrap','chkInv','invBody','selIvRoot','selIvChord','chkIvAvoid','ivInfo','ivList','ovInfo','ovLegend','ovMinWrap','edAlgo','edText','edMsg','edApply','edRestore','edDup','edSave','edSaveAll','selLabel','selNotation','selRootSym','selColor','selWood','chkGhost','chkPath','legend','status','packText','packMsg','packList','btnPackAdd','btnPackExample','btnPackFile','filePack','btnPackExport'
 ].forEach(id => el[id] = $(id));
 
 let uiSig = {algoList:'', params:'', lib:'', presets:'', root:''};
@@ -533,7 +604,7 @@ function refresh(){
   let rec = {exact: [], contained: []};
   if (struct){
     rec = recognize(struct);
-    if (rec.exact.length){ struct.kind = rec.exact[0].item.kind; struct.name = rec.exact[0].item.name; }
+    if (rec.exact.length){ struct.kind = rec.exact[0].item.kind; struct.name = rec.exact[0].item.name; struct.bend = rec.exact[0].item.bend || ''; }
   }
   const sameItem = rec.exact.find(e => e.same);
   fillLibrary(sameItem ? sameItem.item.id : null);
@@ -584,7 +655,7 @@ function refresh(){
   const ovCfg = renderOverlay(ctx, result, params);
   const extraList = extraOn ? FE.extraNotes(ctx, result, semisOn) : [];
   lastRender = {ctx, algo, params, defs, result, extraList, semisOn, struct, extraOn, ovCfgObj: ovCfg ? lastOvCfgObj : null};
-  FE.drawBoard($('board'), ctx, result, Object.assign({}, state, {overlay: ovCfg, extras: extraList}));
+  FE.drawBoard($('board'), ctx, result, Object.assign({}, state, {overlay: ovCfg, extras: extraList, avoid: invAvoid(ctx)}));
   scrollBoardToNotes(result); updateExportUi();
   renderLegend(ctx);
   if (extraList.length) el.legend.insertAdjacentHTML('beforeend', semisOn.map(x => `<span class="chip"><i style="background:#17c3b2;border-color:#0b6e63"></i><b>${esc(FE.EXTRA_LABELS[x])}</b><em>aggiunto</em></span>`).join(''));
@@ -594,7 +665,49 @@ function refresh(){
   if (result.message) bits.push(`<span class="warn">${esc(result.message)}</span>`);
   el.status.innerHTML = bits.join('');
   if (!edDirty && edLoadedId !== state.algo) loadEditor(state.algo);
+  renderInverse();
   saveState();
+}
+
+
+/* ---- Studio inverso: accordo -> scale che lo contengono, con avoid note ---- */
+function ivChord(){
+  const arps = STRUCTS.filter(s => s.kind === 'arpeggio' && s.semiSet.size >= 3 && s.semiSet.size <= 4);
+  const it = arps.find(a => a.id === state.inv.chord) || arps[0];
+  return {arps, it, rootPc: parseRoot(state.inv.root).pc};
+}
+function invAvoid(ctx){
+  if (!state.inv.on || !state.inv.avoid) return null;
+  const {it, rootPc} = ivChord(); if (!it) return null;
+  const chord = [...it.semiSet].map(s => (rootPc + s) % 12);
+  const scale = new Set(ctx.structure.sorted.map(d => (ctx.root.pc + d.semi) % 12));
+  if (!chord.every(c => scale.has(c))) return null;
+  const av = new Set();
+  for (const c of chord){ const a = (c + 1) % 12; if (scale.has(a) && !chord.includes(a)) av.add(a); }
+  return {pcs: [...av], rootPc: ctx.root.pc};
+}
+function renderInverse(){
+  const v = state.inv; el.chkInv.checked = !!v.on; el.invBody.style.display = v.on ? '' : 'none';
+  if (!v.on) return;
+  const {arps, it, rootPc} = ivChord();
+  if (!el.selIvRoot.options.length) el.selIvRoot.innerHTML = ROOTS.map(r => `<option>${r}</option>`).join('');
+  if (el.selIvChord._n !== arps.length){ el.selIvChord._n = arps.length; el.selIvChord.innerHTML = arps.map(a => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join(''); }
+  el.selIvRoot.value = v.root; el.selIvChord.value = it ? it.id : ''; el.chkIvAvoid.checked = !!v.avoid;
+  if (!it){ el.ivList.innerHTML = ''; return; }
+  const chord = [...it.semiSet];
+  const rows = [];
+  for (const sc of STRUCTS) if (sc.kind === 'scale' && sc.semiSet.size >= 5){
+    for (let r = 0; r < 12; r++){
+      if (chord.every(c => sc.semiSet.has(((rootPc + c - r) % 12 + 12) % 12)))
+        rows.push({sc, r, deg: ((rootPc - r) % 12 + 12) % 12});
+    }
+  }
+  const pr = n => n === 7 ? 0 : n < 7 ? 1 : 2;
+  rows.sort((a, b) => pr(a.sc.semiSet.size) - pr(b.sc.semiSet.size) || a.sc.id.localeCompare(b.sc.id));
+  const pick = r => ROOTS.find(n => parseRoot(n).pc === r && !/#/.test(n)) || ROOTS.find(n => parseRoot(n).pc === r);
+  el.ivInfo.textContent = rows.length + ' scale/modi contengono ' + rootLabel(v.root, state.notation) + ' ' + it.name + '. Clic per applicare (la fondamentale della scala cambia).';
+  el.ivList.innerHTML = rows.slice(0, 80).map((x, i) => `<button class="chip" data-i="${i}" style="cursor:pointer"><b>${esc(rootLabel(pick(x.r), state.notation))} ${esc(x.sc.name)}</b><em>${x.deg === 0 ? 'I grado' : 'accordo = grado ' + (x.sc.degrees.split(/\s+/).findIndex(t => { const d = parseDegree(t); return d && d.semi === x.deg; }) + 1)}</em></button>`).join('');
+  el.ivList._rows = rows; el.ivList._pick = pick;
 }
 
 const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
@@ -603,14 +716,28 @@ function renderOverlay(ctx, result, params){
   if (!o.on) return null;
   const st = ctx.structure, isArp = st.kind === 'arpeggio';
   const opts = [];
+  // pentatoniche e altre scale corte: si sceglie la scala eptatonica da cui sono estratte
+  let parentDeg = null, hctx = ctx;
+  const conts = !isArp && st.size < 7 ? FE.containingScales(st) : [];
+  el.ovParentWrap.style.display = conts.length ? '' : 'none';
+  if (conts.length){
+    const psig = conts.map(c => c.id).join('|');
+    if (el.selOvParent._sig !== psig){ el.selOvParent._sig = psig; el.selOvParent.innerHTML = conts.map(c => `<option value="${esc(c.id)}">${esc(rootLabel(state.root, state.notation))} ${esc(c.name)}</option>`).join('') + '<option value="">Solo le note della scala corta</option>'; }
+    let pv = o.parent;
+    if (pv === undefined || pv === 'auto' || (pv !== '' && !conts.some(c => c.id === pv))){ const nat = conts.find(c => /eolio|ionico/i.test(c.name)) || conts[0]; pv = nat.id; }
+    el.selOvParent.value = pv;
+    const pit = conts.find(c => c.id === pv);
+    if (pit){ parentDeg = pit.degrees; try { hctx = FE.buildContext(ctx.tuning, ctx.root.name, FE.finalizeStructure(FE.parseStructure(pit.degrees).degrees)); } catch(e){ hctx = ctx; } }
+  }
+  const hst = hctx.structure;
   if (isArp) opts.push(['self', `L'arpeggio stesso (${rootLabel(state.root, state.notation)} ${st.name || ''})`]);
-  st.sorted.forEach((d, i) => opts.push(['d' + (i + 1), `Armonizzazione del ${ROMAN[i] || i + 1} grado (${noteName(ctx.root, d, state.notation)})`]));
+  hst.sorted.forEach((d, i) => { let q = ''; try { q = FE.harmonize(hctx, i, 'triad').structure.name || ''; } catch(e){} opts.push(['d' + (i + 1), `${ROMAN[i] || i + 1} grado · ${noteName(hctx.root, d, state.notation)} ${q}`.trim()]); });
   const sig = opts.map(x => x[1]).join('|');
   if (el.selOvSrc._sig !== sig){ el.selOvSrc._sig = sig; el.selOvSrc.innerHTML = opts.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join(''); }
   let src = o.src === 'auto' || !opts.some(x => x[0] === o.src) ? (isArp ? 'self' : 'd1') : o.src;
-  el.selOvSrc.value = src;  el.selOvSel.value = o.sel; el.inpOvMin.value = o.min;
+  el.selOvSrc.value = src;  el.selOvSel.value = o.sel; el.inpOvMin.value = o.min; el.selOvStyle.value = o.style || 'ring'; el.chkOvLines.checked = o.lines !== false; el.chkOvDim.checked = !!o.dim;
   el.ovMinWrap.style.display = o.sel === 'touched' ? '' : 'none';
-  const cfg = {source: src === 'self' ? 'self' : 'degree', degree: src === 'self' ? 1 : +src.slice(1), selection: o.sel, minShared: o.min, algo: 'caged'};
+  const cfg = {source: src === 'self' ? 'self' : 'degree', degree: src === 'self' ? 1 : +src.slice(1), selection: o.sel, minShared: o.min, algo: 'caged', parentDegrees: parentDeg, style: o.style, lines: o.lines !== false, dim: !!o.dim};
   lastOvCfgObj = cfg;
   const ov = FE.overlayLayers(ctx, {result, params}, cfg);
   el.ovInfo.textContent = ov.info || ov.message || '';
@@ -623,6 +750,15 @@ function bindOverlay(){
   el.chkOv.addEventListener('change', () => set('on', el.chkOv.checked));
   el.selOvSrc.addEventListener('change', () => set('src', el.selOvSrc.value));
   el.selOvSel.addEventListener('change', () => set('sel', el.selOvSel.value));
+  el.chkInv.addEventListener('change', () => { state.inv.on = el.chkInv.checked; refresh(); });
+  el.selIvRoot.addEventListener('change', () => { state.inv.root = el.selIvRoot.value; refresh(); });
+  el.selIvChord.addEventListener('change', () => { state.inv.chord = el.selIvChord.value; refresh(); });
+  el.chkIvAvoid.addEventListener('change', () => { state.inv.avoid = el.chkIvAvoid.checked; refresh(); });
+  el.ivList.addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (!b) return; const x = el.ivList._rows[+b.dataset.i]; if (!x) return; state.root = el.ivList._pick(x.r); state.degrees = x.sc.degrees; el.inpDeg.value = x.sc.degrees; el.selRoot.value = state.root; refresh(); });
+  el.selOvParent.addEventListener('change', () => set('parent', el.selOvParent.value));
+  el.selOvStyle.addEventListener('change', () => set('style', el.selOvStyle.value));
+  el.chkOvLines.addEventListener('change', () => set('lines', el.chkOvLines.checked));
+  el.chkOvDim.addEventListener('change', () => set('dim', el.chkOvDim.checked));
   el.inpOvMin.addEventListener('input', () => set('min', Math.max(1, +el.inpOvMin.value || 1)));
 }
 
@@ -742,7 +878,7 @@ async function renderCell(R, o){
   const tmp = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   FE.settings.notation = state.notation; FE.settings.rootSym = state.rootSym;
   const ov = R.ovCfgObj ? FE.overlayLayers(ctx, {result, params: R.params}, R.ovCfgObj) : null;
-  FE.drawBoard(tmp, ctx, result, viewOpts({overlay: ov, extras: extraList, style: o.style}));
+  FE.drawBoard(tmp, ctx, result, viewOpts({overlay: ov, extras: extraList, style: o.style, avoid: invAvoid(ctx)}));
   const bands = fretBands(result, extraList), list = bands.length ? bands : [[0, FRETS]];
   const crops = list.map(([lo, hi]) => cropSvg(tmp, lo, hi, C.bg, C.muted));
   const imgs = await Promise.all(crops.map(c => loadImg(c.markup)));
@@ -1070,16 +1206,19 @@ fetch('stock.json', {cache: 'no-cache'})
   });
 
 const showView = v => {
-  $('viewMain').style.display = v === 'main' ? '' : 'none'; $('viewPlayer').style.display = v === 'player' ? '' : 'none';
-  $('tabMain').classList.toggle('on', v === 'main'); $('tabPlayer').classList.toggle('on', v === 'player');
+  $('viewMain').style.display = v === 'main' ? '' : 'none'; $('viewPlayer').style.display = v === 'player' ? '' : 'none'; $('viewLesson').style.display = v === 'lesson' ? '' : 'none';
+  $('tabMain').classList.toggle('on', v === 'main'); $('tabPlayer').classList.toggle('on', v === 'player'); $('tabLesson').classList.toggle('on', v === 'lesson');
+  document.body.classList.toggle('simple', !!window.__simple && v === 'player');
+  document.dispatchEvent(new CustomEvent('fl-view', {detail: v}));
+  if (v === 'lesson'){ if (window.Player) window.Player.hide(); return; }
   if (!window.Player){ if (v === 'player') $('pStatus').innerHTML = '<span style="color:#ff7a7a">Il file <b>player.js</b> non è stato caricato: controlla che sia nel repository (stessa cartella di index.html) e ricarica la pagina con Ctrl+F5.</span>'; return; }
   try { if (v === 'player') window.Player.show(); else window.Player.hide(); } catch(e){ $('pStatus').innerHTML = '<span style="color:#ff7a7a">Errore nel Player: ' + String(e.message).replace(/</g, '&lt;') + '</span>'; console.error(e); }
 };
-$('tabMain').addEventListener('click', () => showView('main')); $('tabPlayer').addEventListener('click', () => showView('player'));
+$('tabMain').addEventListener('click', () => { window.__simple = false; showView('main'); }); $('tabPlayer').addEventListener('click', () => { window.__simple = false; showView('player'); }); $('tabLesson').addEventListener('click', () => showView('lesson'));
 window.FretLab = {
   pdfTools: {buildPdf, canvasJpeg, saveBlob},
   getPatterns: () => ((stockObj && stockObj.patterns) || []).concat(...packs.map(p => Array.isArray(p.patterns) ? p.patterns : [])),
-  getState: () => state,
+  getState: () => state, showView,
   setState: patch => { Object.assign(state, patch); fillStaticControls(); refresh(); },
   _test: {parseStructure, finalizeStructure, buildContext, parseTuning, noteName, parseRoot, recognize, getAlgo, allAlgos, STRUCTS, start}
 };

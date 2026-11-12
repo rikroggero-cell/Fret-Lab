@@ -18,12 +18,12 @@ const FIGS = [
 ];
 
 /* ---------- stato ---------- */
-const PDEF = {bpm:80, fig:'e', volM:70, volN:80, sub:false, count:true, loop:true, mode:'asc', start:'auto', n:6, dir:'asc', order:'1 2 3 2 3 4', vMove:'none', vEnd:'stop', vInv:'no', hMove:'none', hEnd:'stop', hInv:'no', inner:'h', oct:true, repTop:true, sLo:null, sHi:null, fv:null, fgi:0, title:''};
+const PDEF = {bpm:80, fig:'e', volM:70, volN:80, sub:false, count:true, loop:true, mode:'asc', start:'auto', n:6, dir:'asc', order:'1 2 3 2 3 4', vMove:'none', vEnd:'stop', vInv:'no', hMove:'none', hEnd:'stop', hInv:'no', inner:'h', oct:true, hBoxes:'oct', repTop:true, sLo:null, sHi:null, fv:null, fgi:0, title:''};
 let P = Object.assign({}, PDEF);
 try { Object.assign(P, JSON.parse(localStorage.getItem(PKEY) || '{}')); } catch(e){}
 migrateMove(P);
 const saveP = () => { try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch(e){} };
-let S = null;
+let S = null, pending = null;
 
 /* ---------- dati ---------- */
 let patterns = [], ctx = null, struct = null, scaleName = '', F = [], FI = 0, selId = null, SEQ = {events:[], msg:''};
@@ -34,7 +34,8 @@ function show(){
   patterns = FL.getPatterns();
   FE.settings.notation = S.notation; FE.settings.rootSym = S.rootSym;
   if (!bound){ bind(); bound = true; }
-  P.fv = null; P.fgi = 0; P.start = 'auto';   // si riparte dalla diteggiatura scelta nella pagina principale
+  if (pending){ P.fv = pending.fv === undefined ? null : pending.fv; P.fgi = pending.fgi || 0; P.start = pending.start === undefined ? 'auto' : pending.start; pending = null; }
+  else { P.fv = null; P.fgi = 0; P.start = 'auto'; }   // si riparte dalla diteggiatura scelta nella pagina principale
   init(); recompute(true);
 }
 const noteLabel = (n) => {
@@ -112,7 +113,8 @@ function buildSequence(){
     for (let p = cand.indexOf(FI) + sgn; p >= 0 && p < cand.length; p += sgn){
       const j = cand[p], last = F[Hs[Hs.length - 1]];
       if (sgn > 0 ? F[j].low <= last.low : F[j].low >= last.low) continue;
-      if (P.oct && (F[j].v !== null ? seenV.has(F[j].v) : key(F[j]) === shifted)) break;
+      if (P.hBoxes === 'oct' && P.oct && (F[j].v !== null ? seenV.has(F[j].v) : key(F[j]) === shifted)) break;
+      if (P.hBoxes !== 'oct' && Hs.length >= Math.max(2, +P.hBoxes || 2)) break;
       seenV.add(F[j].v);
       Hs.push(j);
     }
@@ -347,7 +349,7 @@ function recompute(first){
 function fillMoveUi(){
   $('selVMove').value = P.vMove; $('selVEnd').value = P.vEnd; $('selVInv').value = P.vInv;
   $('selHMove').value = P.hMove; $('selHEnd').value = P.hEnd; $('selHInv').value = P.hInv;
-  $('selInner').value = P.inner; $('chkOct').checked = !!P.oct; $('chkRepTop').checked = !!P.repTop;
+  $('selInner').value = P.inner; $('chkOct').checked = !!P.oct; $('selHBoxes').value = String(P.hBoxes || 'oct'); $('chkRepTop').checked = !!P.repTop;
   if (ctx){
     const opts = i => `<option value="${i}">${ctx.n - i}ª corda</option>`;
     const list = Array.from({length: ctx.n}, (_, i) => i);
@@ -370,7 +372,7 @@ function fillPresets(){
 }
 function applyPreset(p){
   P.mode = p.mode || 'user'; P.vMove = 'none'; P.hMove = 'none'; P.vEnd = P.hEnd = 'stop'; P.vInv = P.hInv = 'no';
-  if (p.notes) P.n = p.notes; if (p.order) P.order = String(p.order); migrateMove(p = Object.assign({}, p)); for (const k of ['vMove','vEnd','vInv','hMove','hEnd','hInv','inner','oct','repTop']) if (p[k] !== undefined) P[k] = p[k]; if (p.dir) P.dir = p.dir; P.start = p.start !== undefined ? p.start : 'auto';
+  if (p.notes) P.n = p.notes; if (p.order) P.order = String(p.order); migrateMove(p = Object.assign({}, p)); for (const k of ['vMove','vEnd','vInv','hMove','hEnd','hInv','inner','oct','hBoxes','repTop']) if (p[k] !== undefined) P[k] = p[k]; if (p.dir) P.dir = p.dir; P.start = p.start !== undefined ? p.start : 'auto';
   if (p.figure && FIGS.some(f => f.id === p.figure)) P.fig = p.figure;
   if (p.bpm) P.bpm = p.bpm;
   init(); fillStart(); rebuild();
@@ -404,6 +406,7 @@ function bind(){
   $('selMode').addEventListener('change', e => { P.mode = e.target.value; $('runBox').style.display = P.mode === 'user' ? 'none' : ''; upd(); });
   $('selDir').addEventListener('change', e => { P.dir = e.target.value; upd(); });
   [['selVMove','vMove'],['selVEnd','vEnd'],['selVInv','vInv'],['selHMove','hMove'],['selHEnd','hEnd'],['selHInv','hInv'],['selInner','inner']].forEach(([id, k]) => $(id).addEventListener('change', e => { P[k] = e.target.value; upd(); }));
+  $('selHBoxes').addEventListener('change', e => { P.hBoxes = e.target.value === 'oct' ? 'oct' : +e.target.value; upd(); });
   $('chkOct').addEventListener('change', e => { P.oct = e.target.checked; upd(); });
   $('chkRepTop').addEventListener('change', e => { P.repTop = e.target.checked; upd(); });
   $('selSLo').addEventListener('change', e => { P.sLo = +e.target.value; upd(); });
@@ -494,5 +497,6 @@ function exportScorePdf(){
   T.saveBlob(T.buildPdf(cvs.map(cv => Object.assign(T.canvasJpeg(cv), {pw: 595, ph: 842}))), title.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '.pdf');
   msg.className = 'msg ok'; msg.textContent = `PDF creato (${cvs.length} pagin${cvs.length === 1 ? 'a' : 'e'}).`;
 }
-window.Player = {_cv: () => window.ScoreRender, exportScorePdf, show, hide: () => { if (run) stop(); }, get P(){ return P; }, get SEQ(){ return SEQ; }, get F(){ return F; }, setP: p => { Object.assign(P, p); init(); fillStart(); rebuild(); }, gpif: () => gpif(SEQ.events, 'test'), _slot: slotInfo, play, stop, isPlaying: () => !!run};
+const cur = () => { const f = F[FI]; return f ? {fv: f.v, fgi: f.gi, label: fingLabel(f), scale: (rootLabel(S.root, S.notation) + ' ' + (scaleName || 'struttura personalizzata')).trim(), algo: (getAlgo(S.algo) || {}).name || '', fig: figOf().label} : null; };
+window.Player = {cur, queue: (p, pp) => { pending = pp || null; if (p) Object.assign(P, PDEF, p); saveP(); }, PDEF, getP: () => JSON.parse(JSON.stringify(P)),_cv: () => window.ScoreRender, exportScorePdf, show, hide: () => { if (run) stop(); }, get P(){ return P; }, get SEQ(){ return SEQ; }, get F(){ return F; }, setP: p => { Object.assign(P, p); init(); fillStart(); rebuild(); }, gpif: () => gpif(SEQ.events, 'test'), _slot: slotInfo, play, stop, isPlaying: () => !!run};
 })();

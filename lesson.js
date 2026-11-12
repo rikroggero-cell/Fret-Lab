@@ -85,6 +85,10 @@ function render(){
   ['lsLink', 'lsQr', 'lsExport'].forEach(id => $(id).disabled = !L.ex.length);
   $('btnAddLesson').textContent = '＋ Aggiungi alla lezione' + (L.ex.length ? ` (${L.ex.length}/${MAX})` : '');
 }
+function toast(t){
+  let d = $('flToast'); if (!d){ d = document.createElement('div'); d.id = 'flToast'; d.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#e8a33d;color:#111;padding:12px 20px;border-radius:10px;font-weight:600;z-index:60;box-shadow:0 6px 24px rgba(0,0,0,.5)'; document.body.appendChild(d); }
+  d.textContent = t; d.style.display = ''; clearTimeout(d._t); d._t = setTimeout(() => { d.style.display = 'none'; }, 2600);
+}
 const info = (t, bad) => { const m = $('lsInfo'); m.className = 'msg' + (bad ? ' bad' : ' ok'); m.textContent = t; };
 
 /* ---------- codifica per link ---------- */
@@ -134,8 +138,8 @@ async function showQr(){
 function bind(){
   $('btnAddLesson').addEventListener('click', () => {
     if (L.ex.length >= MAX){ alert('La lezione ha già ' + MAX + ' esercizi: rimuovine uno dalla pagina Lezione.'); return; }
-    const ex = capture(); if (!ex){ alert('Nessuna diteggiatura disponibile da salvare.'); return; }
-    L.ex.push(ex); L.student = false; teacher = true; save(); render();
+    const ex = capture(); if (!ex){ toast('Nessuna diteggiatura disponibile da salvare.'); return; }
+    L.ex.push(ex); L.student = false; teacher = true; save(); render(); toast('✓ Esercizio ' + L.ex.length + ' aggiunto alla lezione');
     const b = $('btnAddLesson'), t = b.textContent; b.textContent = '✓ Aggiunto (' + L.ex.length + '/' + MAX + ')'; setTimeout(() => { b.textContent = t.replace(/ \(\d+\/\d+\)$/, '') + ` (${L.ex.length}/${MAX})`; }, 1400);
   });
   $('lsName').addEventListener('input', e => { L.name = e.target.value; save(); });

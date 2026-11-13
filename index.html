@@ -94,12 +94,16 @@ details.inner>summary{color:var(--muted);font-size:13px}
 .exportbar select{width:auto}
 @media (max-width:700px){.exportbar select{flex:1 1 100%}}
 
-.mainbar{display:grid;grid-template-columns:150px 1.3fr 1.3fr 1fr;gap:10px 12px;align-items:end;background:linear-gradient(180deg,#2b2014,#1f1914);border:1.5px solid var(--accent);border-radius:12px;padding:10px 12px;margin:0 0 10px}
+.mainbar{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end;background:linear-gradient(180deg,#2b2014,#1f1914);border:1.5px solid var(--accent);border-radius:12px;padding:10px 12px;margin:0 0 10px}
+.mainbar>.field,.mainbar .mainparams>.field,.mainbar .mainparams>label{min-width:0}
+.mainbar>.field:nth-child(1){flex:0 0 108px}.mainbar>.field:nth-child(2){flex:1 1 190px;max-width:260px}.mainbar>.field:nth-child(3){flex:1 1 220px}.mainbar>.field:nth-child(4){flex:0 0 auto}
+.mainbar .mainparams>*{flex:0 1 150px}
+.mainbar select{max-width:100%;text-overflow:ellipsis}
 .mainbar .field{margin:0}
 .mainbar .field>span{color:var(--accent);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 .mainbar select{font-size:16px;font-weight:600;padding:9px 10px;border-color:#6b4f25}
 .mainparams{display:contents}
-@media (max-width:900px){.mainbar{grid-template-columns:1fr 1fr}.mainbar .wide2{grid-column:span 2}}
+@media (max-width:1100px){.mainbar{flex-wrap:wrap}.mainbar>.field:nth-child(2),.mainbar>.field:nth-child(3){flex:1 1 220px;max-width:none}}
 .transport{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0 0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
 .transport .bpm{display:flex;align-items:center;gap:8px;flex:1 1 280px;min-width:230px}
 .transport .bpm input[type=range]{flex:1}
@@ -159,8 +163,9 @@ body.simple .tabs2, body.simple #viewPlayer .panels > section:not(.keep), body.s
   <section class="stage">
     <div class="mainbar" id="mainBar">
       <label class="field"><span>Fondamentale</span><select id="selRoot"></select></label>
-      <label class="field wide2"><span>Scala / arpeggio</span><select id="selLib"></select></label>
-      <label class="field wide2"><span>Algoritmo</span><select id="selAlgo"></select></label>
+      <label class="field"><span>Scala / arpeggio</span><select id="selLib"></select></label>
+      <label class="field"><span>Algoritmo</span><select id="selAlgo"></select></label>
+      <div class="field" style="align-self:end"><button type="button" id="btnShapes" title="Libreria di forme disegnate">🔍 Forme…</button></div>
       <div id="algoMain" class="mainparams"></div>
     </div>
     <div class="board-scroll"><svg id="board" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Manico"></svg></div>
@@ -442,7 +447,7 @@ body.simple .tabs2, body.simple #viewPlayer .panels > section:not(.keep), body.s
     <h3 class="sub3">Movimenti dopo ogni lick</h3>
     <div class="row">
       <div class="field mv"><b>Tra le corde</b>
-        <label class="field"><span>Spostamento</span><select id="selVMove"><option value="none">Nessuno</option><option value="down1">1 corda sotto (verso il grave)</option><option value="down2">2 corde sotto</option><option value="up1">1 corda sopra (verso l'acuto)</option><option value="up2">2 corde sopra</option></select></label>
+        <label class="field"><span>Spostamento</span><select id="selVMove"><option value="none">Nessuno</option><option value="down1">Una corda sopra (verso il grave)</option><option value="down2">2 corde sopra (verso il grave)</option><option value="up1">Una corda sotto (verso l'acuto)</option><option value="up2">2 corde sotto (verso l'acuto)</option></select></label>
         <label class="field"><span>Quando non entra più</span><select id="selVEnd"><option value="stop">Fermati</option><option value="reverse">Torna indietro</option><option value="again">Ripeti dall'inizio (una volta)</option></select></label>
         <label class="field"><span>Inverti il lick</span><select id="selVInv"><option value="no">Mai</option><option value="step">A ogni spostamento</option><option value="turn">Quando torna indietro / ricomincia</option></select></label>
       </div>
@@ -453,6 +458,7 @@ body.simple .tabs2, body.simple #viewPlayer .panels > section:not(.keep), body.s
       </div>
     </div>
     <div class="row">
+      <label class="check" style="flex:1 1 100%"><input type="checkbox" id="chkBounce">Con entrambi i movimenti: su ogni posizione dell'asse interno fai andata e ritorno (es. salgo sulle corde, scendo, poi cambio box)</label>
       <label class="field"><span>Se ci sono entrambi i movimenti, scorri prima…</span><select id="selInner"><option value="h">i box (per ogni corda)</option><option value="v">le corde (per ogni box)</option></select></label>
       <label class="field"><span>Di quanti box spostarsi in orizzontale</span><select id="selHBoxes"><option value="oct">Un'ottava (automatico)</option><option value="2">2 box</option><option value="3">3 box</option><option value="4">4 box</option><option value="5">5 box</option><option value="6">6 box</option><option value="7">7 box</option><option value="8">8 box</option><option value="9">9 box</option><option value="10">10 box</option><option value="11">11 box</option><option value="12">12 box</option></select></label>
       <label class="check" style="flex:1 1 220px;align-self:end"><input type="checkbox" id="chkOct">Fermati dopo un'ottava (non ripetere i box alle ottave alte)</label>
@@ -482,6 +488,7 @@ body.simple .tabs2, body.simple #viewPlayer .panels > section:not(.keep), body.s
 <script src="qrcode.js"></script>
 <script src="lesson.js"></script>
 <script src="picker.js"></script>
+<script src="shapes.js"></script>
 <script>
 (() => {
 'use strict';
@@ -639,10 +646,13 @@ function refresh(){
   // algoritmi compatibili
   const usable = allAlgos().filter(a => { try { return a.appliesTo(ctx); } catch(e){ return false; } });
   if (!usable.some(a => a.id === state.algo)) state.algo = 'all';
-  const listSig = usable.map(a => a.id + a.name).join('|');
+  // le forme disegnate (shape / find) stanno nella galleria «Forme…», non nel menu (salvo quella attiva)
+  const isShapeAlgo = a => !!(a.spec && (a.spec.type === 'find' || a.spec.type === 'shape'));
+  const menuAlgos = usable.filter(a => !isShapeAlgo(a) || a.id === state.algo);
+  const listSig = menuAlgos.map(a => a.id + a.name).join('|');
   if (uiSig.algoList !== listSig){
     uiSig.algoList = listSig;
-    el.selAlgo.innerHTML = usable.map(a => `<option value="${esc(a.id)}">${esc(a.name)}${a.user ? ' ★' : ''}${a.modified ? ' ·' : ''}</option>`).join('');
+    el.selAlgo.innerHTML = menuAlgos.map(a => `<option value="${esc(a.id)}">${esc(a.name)}${a.user ? ' ★' : ''}${a.modified ? ' ·' : ''}</option>`).join('');
   }
   el.selAlgo.value = state.algo;
   const algo = getAlgo(state.algo);

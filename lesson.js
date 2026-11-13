@@ -18,8 +18,9 @@ function lickText(p){
   else bits.push({asc: 'su', desc: 'giù', ascdesc: 'su e giù', descasc: 'giù e su'}[p.mode] || p.mode);
   if (p.hMove === 'next') bits.push('box verso l\'acuto' + (p.hBoxes && p.hBoxes !== 'oct' ? ' (' + p.hBoxes + ' box)' : ' (un\'ottava)'));
   if (p.hMove === 'prev') bits.push('box verso il grave' + (p.hBoxes && p.hBoxes !== 'oct' ? ' (' + p.hBoxes + ' box)' : ' (un\'ottava)'));
-  if (/^down/.test(p.vMove || '')) bits.push('poi ' + p.vMove.slice(-1) + ' cord' + (p.vMove.endsWith('1') ? 'a' : 'e') + ' più grave');
-  if (/^up/.test(p.vMove || '')) bits.push('poi ' + p.vMove.slice(-1) + ' cord' + (p.vMove.endsWith('1') ? 'a' : 'e') + ' più acuta');
+  if (/^down/.test(p.vMove || '')) bits.push('poi ' + p.vMove.slice(-1) + ' cord' + (p.vMove.endsWith('1') ? 'a' : 'e') + ' verso il grave');
+  if (/^up/.test(p.vMove || '')) bits.push('poi ' + p.vMove.slice(-1) + ' cord' + (p.vMove.endsWith('1') ? 'a' : 'e') + ' verso l\'acuto');
+  if (p.bounce && p.hMove !== 'none' && p.vMove !== 'none') bits.push('andata e ritorno prima di cambiare');
   return bits.join(' · ');
 }
 function descOf(ex){

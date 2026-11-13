@@ -18,7 +18,7 @@ const FIGS = [
 ];
 
 /* ---------- stato ---------- */
-const PDEF = {bpm:80, fig:'e', volM:70, volN:80, sub:false, count:true, loop:true, mode:'asc', start:'auto', n:6, dir:'asc', order:'1 2 3 2 3 4', vMove:'none', vEnd:'stop', vInv:'no', hMove:'none', hEnd:'stop', hInv:'no', inner:'h', oct:true, hBoxes:'oct', repTop:true, sLo:null, sHi:null, fv:null, fgi:0, title:''};
+const PDEF = {bpm:80, fig:'e', volM:70, volN:80, sub:false, count:true, loop:true, mode:'asc', start:'auto', n:6, dir:'asc', order:'1 2 3 2 3 4', vMove:'none', vEnd:'stop', vInv:'no', hMove:'none', hEnd:'stop', hInv:'no', inner:'h', oct:true, hBoxes:'oct', bounce:false, repTop:true, sLo:null, sHi:null, fv:null, fgi:0, title:''};
 let P = Object.assign({}, PDEF);
 try { Object.assign(P, JSON.parse(localStorage.getItem(PKEY) || '{}')); } catch(e){}
 migrateMove(P);
@@ -153,7 +153,7 @@ function buildSequence(){
     const fwd = []; for (let i = 0; i < cnt; i++) fwd.push(i);
     let L = 0; while (L < cnt && at(L)) L++;
     sweep(fwd.slice(0, L));
-    if (cfg.end === 'reverse' && L > 1){ if (cfg.inv === 'turn') inv = !inv; if (cfg.inv === 'step') inv = !inv; sweep(fwd.slice(0, L - 1).reverse()); }
+    if (cfg.end === 'reverse' && L > 1){ if (cfg.inv === 'turn') inv = !inv; if (cfg.inv === 'step') inv = !inv; sweep(fwd.slice(0, vOn && cfg.inv !== 'no' ? L : L - 1).reverse()); }
     else if (cfg.end === 'again'){ if (cfg.inv === 'turn' || cfg.inv === 'step') inv = !inv; sweep(vOn && cfg.inv === 'turn' ? fwd.slice(0, L).reverse() : fwd.slice(0, L)); }
   } else {
     // due assi annidati
@@ -165,8 +165,14 @@ function buildSequence(){
     for (let guard = 0; guard < 400 && out.length < cap; guard++){
       const L = innerLen(o); if (!L) break;
       const order = []; for (let i = 0; i < L; i++) order.push(rev ? L - 1 - i : i);
+      const inv0 = inv;
       order.forEach((i, k) => { if (k > 0 && ic.inv === 'step') inv = !inv; push(pos(o, i)); });
-      if (ic.end === 'reverse'){ rev = !rev; if (ic.inv === 'turn') inv = !inv; }
+      if (P.bounce){
+        // andata e ritorno sull'asse interno (senza ripetere l'estremo), poi si sposta l'asse esterno
+        if (L > 1){ if (ic.inv === 'turn') inv = !inv; for (let i = (!innerH && ic.inv !== 'no') ? L - 1 : L - 2; i >= 0; i--){ if (ic.inv === 'step') inv = !inv; push(pos(o, i)); } }
+        inv = inv0; rev = false;
+      }
+      else if (ic.end === 'reverse'){ rev = !rev; if (ic.inv === 'turn') inv = !inv; }
       else if (ic.end === 'again' && ic.inv === 'turn'){ inv = !inv; rev = innerH ? false : !rev; }
       else rev = false;
       if (oc.inv === 'step') inv = !inv;
@@ -349,7 +355,7 @@ function recompute(first){
 function fillMoveUi(){
   $('selVMove').value = P.vMove; $('selVEnd').value = P.vEnd; $('selVInv').value = P.vInv;
   $('selHMove').value = P.hMove; $('selHEnd').value = P.hEnd; $('selHInv').value = P.hInv;
-  $('selInner').value = P.inner; $('chkOct').checked = !!P.oct; $('selHBoxes').value = String(P.hBoxes || 'oct'); $('chkRepTop').checked = !!P.repTop;
+  $('selInner').value = P.inner; $('chkOct').checked = !!P.oct; $('selHBoxes').value = String(P.hBoxes || 'oct'); $('chkRepTop').checked = !!P.repTop; $('chkBounce').checked = !!P.bounce;
   if (ctx){
     const opts = i => `<option value="${i}">${ctx.n - i}ª corda</option>`;
     const list = Array.from({length: ctx.n}, (_, i) => i);
@@ -366,13 +372,15 @@ function fillStart(){
   $('selStart').value = (prev !== 'auto' && +prev < arr.length) ? String(prev) : 'auto'; if ($('selStart').value !== String(prev)) P.start = 'auto';
 }
 function fillPresets(){
-  const mine = patterns.filter(p => !p.scales || !p.scales.length || p.scales.includes('*') || p.scales.some(n => String(n).toLowerCase() === scaleName.toLowerCase()));
+  const aId = String(S.algo || '').toLowerCase(), aNm = String((FE.getAlgo(S.algo) || {}).name || '').toLowerCase();
+  const mine = patterns.filter(p => (!p.scales || !p.scales.length || p.scales.includes('*') || p.scales.some(n => String(n).toLowerCase() === scaleName.toLowerCase()))
+    && (!p.algos || !p.algos.length || p.algos.includes('*') || p.algos.some(n => { n = String(n).toLowerCase(); return n === aId || n === aNm || aId.replace(/^u\d+:/, '') === n; })));
   $('selPreset').innerHTML = '<option value="">— a mano —</option>' + mine.map((p, i) => `<option value="${patterns.indexOf(p)}">${esc(p.name || 'Pattern ' + (i + 1))}</option>`).join('');
   $('fPreset').style.display = mine.length ? '' : 'none';
 }
 function applyPreset(p){
   P.mode = p.mode || 'user'; P.vMove = 'none'; P.hMove = 'none'; P.vEnd = P.hEnd = 'stop'; P.vInv = P.hInv = 'no';
-  if (p.notes) P.n = p.notes; if (p.order) P.order = String(p.order); migrateMove(p = Object.assign({}, p)); for (const k of ['vMove','vEnd','vInv','hMove','hEnd','hInv','inner','oct','hBoxes','repTop']) if (p[k] !== undefined) P[k] = p[k]; if (p.dir) P.dir = p.dir; P.start = p.start !== undefined ? p.start : 'auto';
+  if (p.notes) P.n = p.notes; if (p.order) P.order = String(p.order); migrateMove(p = Object.assign({}, p)); for (const k of ['vMove','vEnd','vInv','hMove','hEnd','hInv','inner','oct','hBoxes','bounce','repTop']) if (p[k] !== undefined) P[k] = p[k]; if (p.dir) P.dir = p.dir; P.start = p.start !== undefined ? p.start : 'auto';
   if (p.figure && FIGS.some(f => f.id === p.figure)) P.fig = p.figure;
   if (p.bpm) P.bpm = p.bpm;
   init(); fillStart(); rebuild();
@@ -408,6 +416,7 @@ function bind(){
   [['selVMove','vMove'],['selVEnd','vEnd'],['selVInv','vInv'],['selHMove','hMove'],['selHEnd','hEnd'],['selHInv','hInv'],['selInner','inner']].forEach(([id, k]) => $(id).addEventListener('change', e => { P[k] = e.target.value; upd(); }));
   $('selHBoxes').addEventListener('change', e => { P.hBoxes = e.target.value === 'oct' ? 'oct' : +e.target.value; upd(); });
   $('chkOct').addEventListener('change', e => { P.oct = e.target.checked; upd(); });
+  $('chkBounce').addEventListener('change', e => { P.bounce = e.target.checked; upd(); });
   $('chkRepTop').addEventListener('change', e => { P.repTop = e.target.checked; upd(); });
   $('selSLo').addEventListener('change', e => { P.sLo = +e.target.value; upd(); });
   $('selSHi').addEventListener('change', e => { P.sHi = +e.target.value; upd(); });

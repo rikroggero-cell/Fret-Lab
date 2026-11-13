@@ -417,6 +417,7 @@ function renderForm(){
       h('div', {class: 'row'},
         fld('Nome nel menu', txt(a.name, v => { a.name = v; changed({keepRaw: false}); }, {style: 'width:340px'})),
         fld('id (chiave interna)', txt(a.id, v => { a.id = v.trim(); changed(); }, {style: 'width:170px', class: 'mono'}), 'cambiarlo azzera le modifiche locali degli utenti su questo algoritmo')),
+      (a.type === 'find' || a.type === 'shape') ? fld('Gruppo (per la galleria «Forme…»)', txt(a.group || '', v => { v.trim() ? a.group = v.trim() : delete a.group; changed(); }, {style: 'width:260px', placeholder: 'es. Tapping, Sweep, String skipping'})) : null,
       fld('Descrizione mostrata sotto il menu', (() => { const t = h('textarea', {rows: 3}); t.value = a.description || ''; t.addEventListener('input', () => { a.description = t.value; changed(); }); return t; })()),
       h('div', {class: 'row'}, fld('Tipo', sel([['path', 'Percorso (path)'], ['window', 'Finestra (window)'], ['shape', 'Forma disegnata (shape)'], ['find', 'Ricerca forma (find)'], ['script', 'Script']], a.type === 'chain' ? 'path' : a.type, v => changeType(a, v))),
         h('span', {class: 'help', style: 'padding-bottom:10px'}, a.type === 'chain' ? 'Tipo "catena" (vecchio formato): scegli "Percorso" per modificarlo con i nuovi vincoli.' : ''))),
@@ -759,7 +760,7 @@ function renderTunTable(){
 const PSEL = {
   mode: [['user','Pattern numerico'],['asc','Ascendente'],['desc','Discendente'],['ascdesc','Asc/disc'],['descasc','Disc/asc']],
   dir: [['asc','Ascendente'],['desc','Discendente']],
-  vMove: [['none','nessuno'],['down1','1 corda sotto'],['down2','2 corde sotto'],['up1','1 corda sopra'],['up2','2 corde sopra']],
+  vMove: [['none','nessuno'],['down1','una corda sopra (verso il grave)'],['down2','2 corde sopra (verso il grave)'],['up1','una corda sotto (verso l\'acuto)'],['up2','2 corde sotto (verso l\'acuto)']],
   hMove: [['none','nessuno'],['next','box successivo'],['prev','box precedente']],
   end: [['stop','fermati'],['reverse','torna indietro'],['again','ripeti una volta']],
   inv: [['no','mai'],['step','a ogni spostamento'],['turn','al ritorno/ripartenza']],
@@ -775,6 +776,7 @@ function renderPatTable(){
     const row1 = h('div', {style: 'display:flex;gap:8px;flex-wrap:wrap'},
       fld('Nome', txt(it.name, v => { it.name = v; changed(); })),
       fld('Scale (virgola; vuoto = tutte)', txt((it.scales || []).join(', '), v => { const a = v.split(',').map(x => x.trim()).filter(Boolean); if (a.length) it.scales = a; else delete it.scales; changed(); })),
+      fld('Algoritmi (virgola; vuoto = tutti)', txt((it.algos || []).join(', '), v => { const a = v.split(',').map(x => x.trim()).filter(Boolean); if (a.length) it.algos = a; else delete it.algos; changed(); }, {placeholder: 'id o nome, es. caged, nps3', list: 'algoNames'})),
       fld('Tipo di lick', sel(PSEL.mode, it.mode || 'user', v => { it.mode = v; changed(); })));
     const row2 = h('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:6px'},
       fld('N note', txt(String(it.notes || ''), v => { it.notes = parseInt(v, 10) || 4; changed(); })),
@@ -789,12 +791,14 @@ function renderPatTable(){
       fld('Box: spostamento', sel(PSEL.hMove, it.hMove || (it.move === 'next' ? 'next' : it.move === 'prev' ? 'prev' : 'none'), v => { it.hMove = v; delete it.move; changed(); })),
       fld('Box: a fine corsa', sel(PSEL.end, it.hEnd || 'stop', v => { it.hEnd = v; changed(); })),
       fld('Box: inverti lick', sel(PSEL.inv, it.hInv || 'no', v => { it.hInv = v; changed(); })),
-      fld('Se entrambi, scorri prima', sel(PSEL.inner, it.inner || 'h', v => { it.inner = v; changed(); })));
+      fld('Se entrambi, scorri prima', sel(PSEL.inner, it.inner || 'h', v => { it.inner = v; changed(); })),
+      fld('Se entrambi: andata e ritorno prima di cambiare', sel(PSEL.bool, !!it.bounce, v => { it.bounce = v === 'true'; changed(); })));
     const row4 = h('div', {style: 'margin-top:8px'},
       h('button', {class: 'mini', onclick: () => { if (i > 0){ [doc.patterns[i - 1], doc.patterns[i]] = [doc.patterns[i], doc.patterns[i - 1]]; renderPatTable(); changed(); } }}, '↑ Su'), ' ',
       h('button', {class: 'mini', onclick: () => { doc.patterns.splice(i, 1); renderPatTable(); changed(); }}, '✕ Elimina'));
     box.append(row1, row2, row3, row4); c.append(box);
   });
+  c.append(h('datalist', {id: 'algoNames'}, (doc.algorithms || []).map(a => h('option', {value: a.id}, a.name || ''))));
   c.append(h('button', {class: 'mini', onclick: () => { doc.patterns.push({name: 'Nuovo pattern', notes: 4, order: '1 2 3 4', dir: 'asc', vMove: 'none', hMove: 'none'}); renderPatTable(); changed(); }}, '＋ Aggiungi'));
 }
 

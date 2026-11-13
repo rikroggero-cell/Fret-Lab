@@ -70,6 +70,7 @@ table.t input{width:100%}
 .grid th{font-size:11px;color:var(--muted);font-weight:400;min-width:26px}
 .grid td.cell{width:26px;height:26px;border-radius:6px;background:#120e0b;border:1px solid var(--line);cursor:pointer;text-align:center;font-size:11px;color:#6b5f52}
 .grid td.cell.on{background:var(--accent);color:#1b1208;border-color:var(--accent)}
+.grid td.cell.hole{background:#120e0b;border:2px dashed var(--accent);color:var(--accent)}
 .grid td.cell.anch{outline:2px solid #e5484d;outline-offset:-2px}
 .grid td.rl{font-size:12px;color:var(--muted);padding-right:6px;text-align:right;white-space:nowrap}
 details summary{cursor:pointer;color:var(--accent);font-size:13px;margin:6px 0}
@@ -133,7 +134,7 @@ details summary{cursor:pointer;color:var(--accent);font-size:13px;margin:6px 0}
     <div class="card">
       <h2>Algoritmi</h2>
       <div class="row">
-        <select id="newType"><option value="path">Percorso (path)</option><option value="window">Finestra (window)</option><option value="shape">Forma disegnata (shape)</option><option value="script">Script</option></select>
+        <select id="newType"><option value="path">Percorso (path)</option><option value="window">Finestra (window)</option><option value="shape">Forma disegnata (shape)</option><option value="find">Ricerca forma (find)</option><option value="script">Script</option></select>
         <button id="btnNew" class="mini">＋ Nuovo</button>
       </div>
       <div class="row" style="margin-top:6px">
@@ -368,7 +369,7 @@ function bindPreview(){
 /* =====================================================================
    LISTA DEGLI ALGORITMI
    ===================================================================== */
-const TYPE_LABEL = {path: 'percorso', window: 'finestra', shape: 'forma', script: 'script', chain: 'catena'};
+const TYPE_LABEL = {path: 'percorso', window: 'finestra', shape: 'forma', find: 'ricerca forma', script: 'script', chain: 'catena'};
 function renderList(){
   const ul = $('#alist'); ul.innerHTML = '';
   doc.algorithms.forEach((a, i) => {
@@ -385,6 +386,7 @@ const TEMPLATES = {
                 notesPerString: '3', length: 'strings', limits: {minKept: 0.8}, octave: {$param: true}}),
   window: () => ({type: 'window', description: '', width: 4, stretch: 1, forms: [{name: 'Forma 1', string: 'E', fret: 1}]}),
   shape: () => ({type: 'shape', description: '', anchor: {string: 6, degree: 'F'}, onlyInStructure: true, frets: [[0, 3], [0, 2], [0, 2], [0, 2], [0, 3], [0, 3]]}),
+  find: () => ({type: 'find', description: '', mode: 'geo', drawString: 4, frets: [[0, 2], [0, 2], [0, 1]], holes: []}),
   script: () => ({type: 'script', description: '', code: ['const out = [];', 'for (let s = 0; s < ctx.n; s++)', '  for (let f = 0; f <= ctx.frets; f++)', '    if (ctx.board[s][f].deg >= 0) out.push({s, f});', 'return {groups: [{notes: out}]};']})
 };
 function newAlgo(type){
@@ -416,10 +418,10 @@ function renderForm(){
         fld('Nome nel menu', txt(a.name, v => { a.name = v; changed({keepRaw: false}); }, {style: 'width:340px'})),
         fld('id (chiave interna)', txt(a.id, v => { a.id = v.trim(); changed(); }, {style: 'width:170px', class: 'mono'}), 'cambiarlo azzera le modifiche locali degli utenti su questo algoritmo')),
       fld('Descrizione mostrata sotto il menu', (() => { const t = h('textarea', {rows: 3}); t.value = a.description || ''; t.addEventListener('input', () => { a.description = t.value; changed(); }); return t; })()),
-      h('div', {class: 'row'}, fld('Tipo', sel([['path', 'Percorso (path)'], ['window', 'Finestra (window)'], ['shape', 'Forma disegnata (shape)'], ['script', 'Script']], a.type === 'chain' ? 'path' : a.type, v => changeType(a, v))),
+      h('div', {class: 'row'}, fld('Tipo', sel([['path', 'Percorso (path)'], ['window', 'Finestra (window)'], ['shape', 'Forma disegnata (shape)'], ['find', 'Ricerca forma (find)'], ['script', 'Script']], a.type === 'chain' ? 'path' : a.type, v => changeType(a, v))),
         h('span', {class: 'help', style: 'padding-bottom:10px'}, a.type === 'chain' ? 'Tipo "catena" (vecchio formato): scegli "Percorso" per modificarlo con i nuovi vincoli.' : ''))),
     appliesSection(a),
-    a.type === 'path' ? pathSection(a) : a.type === 'window' ? windowSection(a) : a.type === 'shape' ? shapeSection(a) : a.type === 'script' ? scriptSection(a) : h('div', {class: 'msg bad'}, 'Tipo non modificabile da qui: usa il JSON avanzato.'),
+    a.type === 'path' ? pathSection(a) : a.type === 'window' ? windowSection(a) : a.type === 'shape' ? shapeSection(a) : a.type === 'find' ? findSection(a) : a.type === 'script' ? scriptSection(a) : h('div', {class: 'msg bad'}, 'Tipo non modificabile da qui: usa il JSON avanzato.'),
     rawSection()));
 }
 function changeType(a, t){
@@ -618,6 +620,52 @@ function shapeSection(a){
       h('p', {class: 'help'}, 'Clicca le celle: righe = corde (la più grave in basso), colonne = tasti rispetto al tasto dell\'ancora (cerchio rosso = l\'ancora stessa). La forma viene riproposta in ogni punto del manico in cui il grado d\'ancoraggio compare.'),
       h('div', {class: 'row'}, fld('Corde nella forma', sel(optN(4, 8, n => [String(n), String(n)]), Math.max(a.frets.length, 4), v => { const n = +v; a.frets = a.frets.slice(0, n); while (a.frets.length < n) a.frets.push([]); draw(); changed(); }, {style: 'width:70px'}))),
       gridBox));
+}
+
+/* ---------- ricerca forma (find) ---------- */
+function findSection(a){
+  if (!Array.isArray(a.frets)) a.frets = [];
+  if (!Array.isArray(a.holes)) a.holes = [];
+  if (a.mode !== 'str') a.mode = 'geo';
+  const FO = Array.from({length: 19}, (_, i) => i - 6);
+  const box = h('div', {style: 'overflow-x:auto'}), thumb = h('div', {style: 'color:var(--text);margin:6px 0'});
+  const tun = () => { const t = FE.parseTuning(pv.tuning); return t.midis || [40, 45, 50, 55, 59, 64]; };
+  const nRows = () => Math.max(a.frets.length, a.holes.length, 2);
+  const drawIdx = () => { try { const t = tun(); const ctx = FE.buildContext(t, 'C', FE.finalizeStructure(FE.parseStructure('F 2 3 4 5 6 7').degrees)); const i = ctx.stringIndex(a.drawString === undefined ? 4 : a.drawString); return i < 0 ? 0 : i; } catch(e){ return 0; } };
+  const prev = () => { thumb.innerHTML = FE.shapeThumb(Object.assign({}, a, {type: 'find'}), 90) || '<span class="help">(forma vuota)</span>'; };
+  const draw = () => {
+    box.innerHTML = '';
+    const n = nRows(); while (a.frets.length < n) a.frets.push([]); while (a.holes.length < n) a.holes.push([]);
+    const t = tun(), d0 = drawIdx();
+    const tb = h('table', {class: 'grid'});
+    tb.append(h('tr', {}, h('th', {}), FO.map(o => h('th', {}, o > 0 ? '+' + o : String(o)))));
+    for (let s = n - 1; s >= 0; s--){
+      const onA = [].concat(a.frets[s] || []), hoA = [].concat(a.holes[s] || []);
+      const idx = d0 + s, lab = a.mode === 'str' && idx < t.length ? `${t.length - idx} · ${FE.midiName(t[idx], pv.notation)}` : `riga ${s + 1}`;
+      tb.append(h('tr', {}, h('td', {class: 'rl'}, lab),
+        FO.map(o => { const isOn = onA.includes(o), isHole = hoA.includes(o);
+          return h('td', {class: 'cell' + (isOn ? ' on' : '') + (isHole ? ' hole' : ''), title: isHole ? 'buco: qui NON deve esserci una nota della scala' : isOn ? 'nota: deve far parte della scala' : 'vuota: indifferente',
+            onclick: () => {
+              const on = [].concat(a.frets[s] || []).filter(x => x !== o), ho = [].concat(a.holes[s] || []).filter(x => x !== o);
+              if (isOn) ho.push(o); else if (!isHole) on.push(o);
+              a.frets[s] = on.sort((x, y) => x - y); a.holes[s] = ho.sort((x, y) => x - y); draw(); changed(); }}, isHole ? '×' : (o === 0 ? '0' : '')); })));
+    }
+    box.append(tb); prev();
+  };
+  draw();
+  return h('div', {},
+    sect('Tipo di ricerca',
+      h('div', {class: 'row'},
+        fld('Come si cerca', sel([['geo', 'Forma geometrica (non dipende dalle corde)'], ['str', 'Forma legata alle corde (stessi intervalli musicali)']], a.mode, v => { a.mode = v; renderForm(); changed(); })),
+        a.mode === 'str' ? fld('Corda su cui è disegnata la riga più grave', txt(a.drawString === undefined ? 4 : a.drawString, v => { a.drawString = /^\d+$/.test(v) ? +v : v; draw(); changed(); }, {style: 'width:90px', list: 'strOptions2'}), 'numero (1 = la più acuta) o nota') : null,
+        fld('Corde nella forma', sel(optN(2, 8, n => [String(n), String(n)]), nRows(), v => { const n = +v; a.frets = a.frets.slice(0, n); a.holes = a.holes.slice(0, n); while (a.frets.length < n) a.frets.push([]); while (a.holes.length < n) a.holes.push([]); draw(); changed(); }))),
+      h('datalist', {id: 'strOptions2'}, ['E', 'A', 'D', 'G', 'B', '1', '2', '3', '4', '5', '6'].map(v => h('option', {value: v}))),
+      h('p', {class: 'help'}, a.mode === 'geo'
+        ? 'Il programma prova il disegno in ogni punto del manico e su ogni gruppo di corde adiacenti, solo in modo geometrico (le distanze in tasti restano quelle disegnate, anche al passaggio Sol–Si).'
+        : 'Il disegno è un lick su corde precise. Sulla tendina «Corda di partenza» scegli da quale corda cercarlo: se lo sposti su un\'altra corda, il programma corregge i tasti in modo da mantenere gli stessi intervalli musicali.')),
+    sect('Disegna la forma',
+      h('p', {class: 'help'}, 'Clicca una cella: 1° clic = nota (deve far parte della scala), 2° clic = buco × (qui NON deve esserci una nota della scala), 3° clic = cella vuota (indifferente). Righe = corde (la più grave in basso), colonne = tasti relativi (0 = colonna di riferimento).'),
+      box, h('div', {class: 'help'}, 'Anteprima:'), thumb));
 }
 
 /* ---------- script ---------- */

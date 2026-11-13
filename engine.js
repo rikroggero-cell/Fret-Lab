@@ -705,6 +705,70 @@ function shapeAlgo(spec){
   };
 }
 
+/* ---- 4c-bis. Tipo "find": cerca nella scala i punti dove entra una forma disegnata ---- */
+function findCells(arr){ const out = []; (arr || []).forEach((row, r) => [].concat(row).forEach(o => out.push({r, o: +o}))); return out; }
+function findAlgo(spec){
+  const geo = spec.mode !== 'str';
+  return {
+    id: spec.id, name: spec.name, description: spec.description || '', user: spec.user,
+    appliesTo: makeApplies(spec.appliesTo),
+    params: ctx => {
+      const rows = Math.max((spec.frets || []).length, (spec.holes || []).length, 1);
+      const opts = [{value: 'all', label: 'Tutte le corde'}];
+      for (let i = 0; i + rows <= ctx.n; i++) opts.push({value: String(i), label: `Parte dalla ${ctx.n - i}ª corda · ${midiName(ctx.tuning[i], settings.notation).replace(/\d+$/, '')}`});
+      return [{id: 'startString', label: 'Corda di partenza', type: 'select', default: 'all', options: opts}];
+    },
+    generate: (ctx, p) => {
+      const on = findCells(spec.frets), holes = findCells(spec.holes);
+      if (!on.length) return {groups: [], message: 'Disegna almeno una nota nella forma.'};
+      const rows = Math.max(...on.concat(holes).map(c => c.r)) + 1, tun = ctx.tuning;
+      if (rows > ctx.n) return {groups: [], message: `La forma usa ${rows} corde, lo strumento ne ha ${ctx.n}.`};
+      let drawS = 0;
+      if (!geo){
+        drawS = ctx.stringIndex(spec.drawString === undefined ? ctx.n : spec.drawString);
+        if (drawS < 0 || drawS + rows > ctx.n) return {groups: [], message: 'Corda del disegno non valida per questa accordatura.'};
+      }
+      const sel = p && p.startString !== undefined && p.startString !== 'all' ? +p.startString : null;
+      const groups = [];
+      for (let T = 0; T + rows <= ctx.n; T++){
+        if (sel !== null && T !== sel) continue;
+        const fretOf = (c, f0) => geo ? f0 + c.o : f0 + (tun[drawS + c.r] + c.o - tun[drawS]) - (tun[T + c.r] - tun[T]);
+        for (let f0 = -14; f0 <= FRETS + 14; f0++){
+          let ok = true; const notes = [];
+          for (const c of on){
+            const f = fretOf(c, f0);
+            if (f < 0 || f > FRETS || ctx.board[T + c.r][f].deg < 0){ ok = false; break; }
+            notes.push({s: T + c.r, f});
+          }
+          if (!ok) continue;
+          for (const c of holes){ const f = fretOf(c, f0); if (f >= 0 && f <= FRETS && ctx.board[T + c.r][f].deg >= 0){ ok = false; break; } }
+          if (!ok) continue;
+          const lo = Math.min(...notes.map(n => n.f)), hi = Math.max(...notes.map(n => n.f));
+          groups.push({name: `corde ${ctx.n - T - rows + 1}–${ctx.n - T}ª · tasti ${lo}–${hi}`, notes, _k: T * 100 + lo});
+        }
+      }
+      groups.sort((a, b) => a._k - b._k); groups.forEach(g => delete g._k);
+      return {groups, info: groups.length ? groups.length + ' posizion' + (groups.length === 1 ? 'e' : 'i') + ' trovat' + (groups.length === 1 ? 'a' : 'e') : '', message: groups.length ? '' : 'Questa forma non entra in nessun punto di questa scala (con questa corda di partenza).'};
+    }
+  };
+}
+
+/** Miniatura SVG di una forma disegnata (tipi shape e find): note piene, buchi vuoti, ancora in rosso. */
+function shapeThumb(spec, size){
+  const on = findCells(spec.frets), holes = findCells(spec.holes);
+  if (!on.length && !holes.length) return '';
+  const all = on.concat(holes), rows = Math.max(...all.map(c => c.r)) + 1;
+  let lo = Math.min(...all.map(c => c.o)), hi = Math.max(...all.map(c => c.o));
+  if (spec.type === 'shape'){ lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+  const cols = hi - lo + 1, u = Math.min(8, Math.max(4, Math.floor(34 / Math.max(rows, 1)))), w = cols * u + u, h = rows * u + u;
+  const cx = o => u + (o - lo) * u - u / 2 + u / 2, cy = r => h - u / 2 - r * u - u / 2;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${size || Math.min(72, w * 2)}" height="${(size || Math.min(72, w * 2)) * h / w}">`;
+  for (let r = 0; r < rows; r++) s += `<line x1="${u / 2}" x2="${w - u / 2}" y1="${cy(r)}" y2="${cy(r)}" stroke="currentColor" stroke-opacity=".35" stroke-width="1"/>`;
+  for (const c of holes) s += `<circle cx="${cx(c.o)}" cy="${cy(c.r)}" r="${u * 0.34}" fill="none" stroke="currentColor" stroke-opacity=".8" stroke-width="1.2" stroke-dasharray="2 1.5"/>`;
+  for (const c of on) s += `<circle cx="${cx(c.o)}" cy="${cy(c.r)}" r="${u * 0.4}" fill="${spec.type === 'shape' && c.o === 0 ? '#e8493f' : '#e8a33d'}"/>`;
+  return s + '</svg>';
+}
+
 /* ---- 4d. Tipo "script" ---- */
 const srcOf = v => Array.isArray(v) ? v.join('\n') : String(v);
 function makeH(ctx){
@@ -739,8 +803,9 @@ function buildAlgoFromSpec(it, id, user){
   else if (it.type === 'chain'){ if (!it.notesPerString) throw new Error('manca notesPerString'); def = pathAlgo(chainToPath(spec)); }
   else if (it.type === 'window'){ if (!Array.isArray(it.forms) || !it.forms.length) throw new Error('manca la lista forms'); def = windowAlgo(spec); }
   else if (it.type === 'shape'){ if (!Array.isArray(it.frets)) throw new Error('manca la lista frets'); def = shapeAlgo(spec); }
+  else if (it.type === 'find'){ if (!Array.isArray(it.frets)) throw new Error('manca la lista frets'); def = findAlgo(spec); }
   else if (it.type === 'script'){ if (it.code === undefined) throw new Error('manca code'); def = scriptAlgo(spec); }
-  else throw new Error(`type "${it.type}" sconosciuto (usa path, window, shape o script)`);
+  else throw new Error(`type "${it.type}" sconosciuto (usa path, window, shape, find o script)`);
   def.spec = it;
   return def;
 }
@@ -1055,7 +1120,7 @@ window.FE = {
   FRETS, MARKERS, ROOTS, LETTERS, settings, mod, esc, fmtNote, rootLabel, parseRoot, parseDegree, noteName,
   parseStructure, finalizeStructure, STRUCTS, addStructure, recognize,
   PRESETS, USER_PRESETS, allPresets, defaultTuningFor, parseTuning, midiName,
-  buildContext, allAlgos, getAlgo, buildAlgoFromSpec, registerAlgorithm, loadStock, loadUser, runAlgorithm, plural, degText,
+  buildContext, allAlgos, getAlgo, buildAlgoFromSpec, registerAlgorithm, shapeThumb, loadStock, loadUser, runAlgorithm, plural, degText,
   drawBoard, overlayLayers, containingScales, extraNotes, EXTRA_LABELS, harmonize, FORM_COLORS, modeParent, dotColors, degLabelShown, WOODS, ensureParams, buildParamControls, parseCountSpec, pathParamDefs
 };
 })();

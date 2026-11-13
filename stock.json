@@ -208,6 +208,11 @@
     },
     {
       "group": "Simmetriche",
+      "name": "Scala Cromatica",
+      "degrees": "F b2 2 b3 3 4 b5 5 b6 6 b7 7"
+    },
+    {
+      "group": "Simmetriche",
       "name": "Esatonale (toni interi)",
       "degrees": "F 2 3 #4 #5 b7"
     },
@@ -1088,6 +1093,31 @@
         ],
         "exactNotes": 6
       }
+    },
+    {
+      "id": "Tecnica",
+      "name": "Tecnica",
+      "type": "shape",
+      "description": "",
+      "anchor": {
+        "string": 6,
+        "degree": "F"
+      },
+      "onlyInStructure": true,
+      "frets": [
+        [0, 1, 2, 3],
+        [0, 1, 2, 3],
+        [0, 1, 2, 3],
+        [0, 1, 2, 3],
+        [0, 1, 2, 3],
+        [0, 1, 2, 3]
+      ],
+      "appliesTo": {
+        "kinds": [
+          "scale"
+        ],
+        "exactNotes": 12
+      }
     }
   ],
   "patterns": [
@@ -1236,6 +1266,33 @@
       "algos": [
         "nps3"
       ]
+    },
+    {
+      "name": "1234 Ascendente/Discendete",
+      "notes": 4,
+      "order": "1 2 3 4",
+      "dir": "asc",
+      "vMove": "up1",
+      "hMove": "none",
+      "scales": [
+        "Scala Cromatica"
+      ],
+      "algos": [
+        "Tecnica"
+      ],
+      "mode": "ascdesc",
+      "vEnd": "reverse",
+      "vInv": "turn"
+    },
+    {
+      "name": "1 2 3 Ascendente/Discendente",
+      "notes": 3,
+      "order": "1 2 3",
+      "dir": "asc",
+      "vMove": "up1",
+      "hMove": "none",
+      "vEnd": "reverse",
+      "vInv": "turn"
     }
   ]
 }

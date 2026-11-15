@@ -760,7 +760,7 @@ function renderTunTable(){
 const PSEL = {
   mode: [['user','Pattern numerico'],['asc','Ascendente'],['desc','Discendente'],['ascdesc','Asc/disc'],['descasc','Disc/asc']],
   dir: [['asc','Ascendente'],['desc','Discendente']],
-  vMove: [['none','nessuno'],['down1','una corda sopra (verso il grave)'],['down2','2 corde sopra (verso il grave)'],['up1','una corda sotto (verso l\'acuto)'],['up2','2 corde sotto (verso l\'acuto)']],
+  vMove: [['none','nessuno'],['down1','una corda sopra (verso il grave)'],['down2','2 corde sopra (verso il grave)'],['up1','una corda sotto (verso l\'acuto)'],['up2','2 corde sotto (verso l\'acuto)'],['noteup','nota successiva (lick numerico)'],['notedown','nota precedente (lick numerico)']],
   hMove: [['none','nessuno'],['next','box successivo'],['prev','box precedente']],
   end: [['stop','fermati'],['reverse','torna indietro'],['again','ripeti una volta']],
   inv: [['no','mai'],['step','a ogni spostamento'],['turn','al ritorno/ripartenza']],
@@ -785,9 +785,9 @@ function renderPatTable(){
       fld('Ribatti nota di inversione', sel(PSEL.bool, it.repTop !== false, v => { it.repTop = v === 'true'; changed(); })),
       fld('Fermati dopo un\'ottava', sel(PSEL.bool, it.oct !== false, v => { it.oct = v === 'true'; changed(); })));
     const row3 = h('div', {style: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:6px'},
-      fld('Corde: spostamento', sel(PSEL.vMove, it.vMove || 'none', v => { it.vMove = v; changed(); })),
-      fld('Corde: a fine corsa', sel(PSEL.end, it.vEnd || 'stop', v => { it.vEnd = v; changed(); })),
-      fld('Corde: inverti lick', sel(PSEL.inv, it.vInv || 'no', v => { it.vInv = v; changed(); })),
+      fld('Verticale: spostamento', sel(PSEL.vMove, it.vMove || 'none', v => { it.vMove = v; changed(); })),
+      fld('Verticale: a fine corsa', sel(PSEL.end, it.vEnd || 'stop', v => { it.vEnd = v; changed(); })),
+      fld('Verticale: inverti lick', sel(PSEL.inv, it.vInv || 'no', v => { it.vInv = v; changed(); })),
       fld('Box: spostamento', sel(PSEL.hMove, it.hMove || (it.move === 'next' ? 'next' : it.move === 'prev' ? 'prev' : 'none'), v => { it.hMove = v; delete it.move; changed(); })),
       fld('Box: a fine corsa', sel(PSEL.end, it.hEnd || 'stop', v => { it.hEnd = v; changed(); })),
       fld('Box: inverti lick', sel(PSEL.inv, it.hInv || 'no', v => { it.hInv = v; changed(); })),

@@ -101,7 +101,7 @@ function buildSequence(){
   const cur = F[FI].notes;
   const sIdx = (P.start === 'auto' || !(+P.start >= 0 && +P.start < cur.length)) ? (baseAsc ? 0 : cur.length - 1) : +P.start;
   const s0 = cur[sIdx].s, ord0 = cur.slice(0, sIdx).filter(x => x.s === s0).length;
-  const hOn = P.hMove === 'next' || P.hMove === 'prev', vOn = /^(down|up)[12]$/.test(P.vMove);
+  const hOn = P.hMove === 'next' || P.hMove === 'prev', noteM = P.mode === 'user' && /^note(up|down)$/.test(P.vMove), vOn = noteM || /^(down|up)[12]$/.test(P.vMove);
   // --- catena dei box ---
   let Hs = [FI];
   if (hOn){
@@ -121,7 +121,8 @@ function buildSequence(){
   }
   // --- offset sulle corde ---
   let Vs = [0];
-  if (vOn){ const k = +P.vMove.slice(-1) * (P.vMove.startsWith('down') ? -1 : 1); Vs = []; for (let v = 0; Math.abs(v) < n; v += k) Vs.push(v); }
+  if (noteM){ const k = P.vMove === 'noteup' ? 1 : -1; Vs = []; for (let v = 0; Math.abs(v) < cur.length; v += k) Vs.push(v); }
+  else if (vOn){ const k = +P.vMove.slice(-1) * (P.vMove.startsWith('down') ? -1 : 1); Vs = []; for (let v = 0; Math.abs(v) < n; v += k) Vs.push(v); }
   let inv = false;
   const mk = (fi, x) => ({fi, s:x.s, f:x.f, midi:x.midi, deg:x.deg});
   function lickAt(a, b){
@@ -135,9 +136,9 @@ function buildSequence(){
       return m === 'asc' ? up : m === 'desc' ? dn : m === 'ascdesc' ? up.concat(rt ? dn : dn.slice(1)) : dn.concat(rt ? up : up.slice(1));
     }
     // lick numerico: la finestra di note resta la stessa (stesse corde); l'inversione ne cambia solo il verso
-    const ns = s0 + v;
+    const ns = s0 + (noteM ? 0 : v);
     const onS = arr.map((x, j) => j).filter(j => arr[j].s === ns); if (!onS.length) return null;
-    const idx = onS[Math.min(ord0, onS.length - 1)];
+    const idx = onS[Math.min(ord0, onS.length - 1)] + (noteM ? v : 0);
     const lo = baseAsc ? idx : idx - N + 1, hi = baseAsc ? idx + N - 1 : idx;
     if (lo < 0 || hi > arr.length - 1) return null;
     const asc = baseAsc !== inv;
